@@ -1,3 +1,29 @@
+##
+For your next phase of work, **Sprint 1: Foundation Setup**, you will operate as a collaborative team where you hold final accountability and the AI provides specialized technical support. The following details the specific roles and responsibilities involved in this execution block.
+
+### **Human Roles (Your Responsibilities)**
+As the human lead, your primary focus is on **Execution** and **Decision Making**, ensuring that the project aligns with your career goals and technical standards.
+
+*   **Lead Developer (Execution):** You are responsible for the physical installation of Python, FastAPI, PostgreSQL, Docker, and Angular on your machine. While the AI can provide code, you must manually run the `docker-compose up` command and verify the connection between the services.
+*   **Final Decision Maker:** You must approve all technical choices, such as freezing the architecture as a **Modular Monolith** and confirming that the "Simple Inventory Model" is sufficient for the MVP.
+*   **Accountability Officer:** You own the final outcomes and must update the **Master Tracker** in your Project Execution Workbook and the **Sprint Planner** in your Portfolio OS to reflect your progress.
+*   **Learning Lead:** You are responsible for practicing and implementing the technical tasks to ensure you can explain them (e.g., explaining why you chose JWT for Auth) during a Solution Architect interview.
+
+### **AI Team Roles (Support Functions)**
+Your "AI Team" provides the specialized expertise needed to accelerate the setup phase without getting bogged down in boilerplate code.
+
+*   **Project Manager AI:** Assists you during your **Morning Review** to break down the "Foundation Setup" into daily manageable tasks and ensures you stay focused on the **Sprint 1** deliverables.
+*   **DevOps Engineer AI:** Provides the specific configuration for your `Dockerfile` and `docker-compose.yml` to ensure your FastAPI, PostgreSQL, and Redis containers can communicate properly.
+*   **Chief Architect AI:** Reviews your local environment configuration against the **Architecture Decision Record (ADR-001)** to ensure you don't inadvertently introduce complexity, such as microservices, too early.
+*   **Developer AI:** Generates the initial **FastAPI** and **Angular** project structures, including the routing and environment configuration files, which you will then review and implement.
+*   **Technical Writer AI:** Helps you update your `portfolio-os` and `ecommerce-platform` README files as you complete setup tasks, ensuring your documentation mirrors professional enterprise standards.
+*   **CEO Coach AI:** Facilitates your **Evening Review**, helping you journal your technical wins and identify any "losses" or blockers to address the following day.
+
+### **Interaction Details**
+*   **Human Approval Required:** For all roles except the Learning Coach and CEO Coach, you must explicitly **approve and review** any code or architectural advice provided by the AI before it is committed to your GitHub repositories.
+*   **Operational Rhythm:** You start your day with the **Project Manager AI** for goal alignment and end it with the **CEO Coach AI** for accountability. During your deep work blocks, the **Developer** and **DevOps** AI roles act as your primary assistants.
+##
+--------------------
 As your **Project Manager AI**, I have reviewed your progress and the two new foundational documents you added. With the **Architecture & Planning Phase** now formally complete, you are perfectly positioned to move into active development.
 
 ### **1. Review of New Documents**
