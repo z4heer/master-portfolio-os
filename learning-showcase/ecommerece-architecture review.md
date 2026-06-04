@@ -1,5 +1,3 @@
-I reviewed the architecture documents and BRD you shared. They consistently point toward a **portfolio-grade FastAPI + Angular + PostgreSQL E-Commerce Platform** using a **Modular Monolith**, JWT authentication, Redis caching, Docker deployment, Swagger/OpenAPI, and Alembic migrations.   
-
 As your **Senior Solution Architect Teacher**, here's how I would explain these concepts during an architecture review.
 
 ---
