@@ -1,4 +1,4 @@
-# Sprint-1 Completion Report
+# Sprint-1 Day 2 Completion Report
 
 ## E-Commerce Platform
 
