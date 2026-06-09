@@ -630,5 +630,576 @@ Avoid these until Sprint 2 is fully stable:
 ❌ Account Locking
 ❌ MFA
 ```
+##
+Code to implement
+##
+---
+Yes. Since this is being handed to a developer, I would provide a **Sprint 2 Implementation Package** with the exact files to create and the order to create them.
+
+---
+
+# Phase 1 – Models
+
+## app/modules/auth/models/role.py
+
+```python
+from uuid import uuid4
+
+from sqlalchemy import String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database.base import Base
+
+
+class Role(Base):
+    __tablename__ = "roles"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(50),
+        unique=True,
+        nullable=False
+    )
+
+    users = relationship(
+        "User",
+        back_populates="role"
+    )
+```
+
+---
+
+## app/modules/auth/models/user.py
+
+```python
+from uuid import uuid4
+
+from sqlalchemy import String, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database.base import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4
+    )
+
+    email: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    password_hash: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    role_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("roles.id"),
+        nullable=False
+    )
+
+    role = relationship(
+        "Role",
+        back_populates="users"
+    )
+```
+
+---
+
+# Phase 2 – Security
+
+## app/core/security.py
+
+```python
+from datetime import datetime, timedelta, timezone
+
+from jose import jwt
+from passlib.context import CryptContext
+
+SECRET_KEY = "CHANGE_ME"
+ALGORITHM = "HS256"
+
+ACCESS_TOKEN_MINUTES = 15
+REFRESH_TOKEN_DAYS = 7
+
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(
+    plain_password: str,
+    hashed_password: str
+) -> bool:
+    return pwd_context.verify(
+        plain_password,
+        hashed_password
+    )
+
+
+def create_access_token(payload: dict):
+
+    expire = (
+        datetime.now(timezone.utc)
+        + timedelta(minutes=ACCESS_TOKEN_MINUTES)
+    )
+
+    payload.update({"exp": expire})
+
+    return jwt.encode(
+        payload,
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+
+def create_refresh_token(payload: dict):
+
+    expire = (
+        datetime.now(timezone.utc)
+        + timedelta(days=REFRESH_TOKEN_DAYS)
+    )
+
+    payload.update({"exp": expire})
+
+    return jwt.encode(
+        payload,
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+```
+
+---
+
+# Phase 3 – Repository
+
+## app/modules/auth/repositories/auth_repository.py
+
+```python
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.modules.auth.models.user import User
+
+
+class AuthRepository:
+
+    def __init__(
+        self,
+        db: AsyncSession
+    ):
+        self.db = db
+
+    async def get_user_by_email(
+        self,
+        email: str
+    ) -> User | None:
+
+        stmt = (
+            select(User)
+            .where(User.email == email)
+        )
+
+        result = await self.db.execute(stmt)
+
+        return result.scalar_one_or_none()
+
+    async def create_user(
+        self,
+        user: User
+    ) -> User:
+
+        self.db.add(user)
+
+        await self.db.commit()
+
+        await self.db.refresh(user)
+
+        return user
+```
+
+---
+
+# Phase 4 – Schemas
+
+## auth_request.py
+
+```python
+from pydantic import BaseModel, EmailStr
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    role_id: str
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+```
+
+---
+
+## auth_response.py
+
+```python
+from pydantic import BaseModel
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+```
+
+---
+
+# Phase 5 – Service
+
+## app/modules/auth/services/auth_service.py
+
+```python
+from app.core.security import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token
+)
+
+from app.modules.auth.models.user import User
+from app.modules.auth.repositories.auth_repository import (
+    AuthRepository
+)
+
+
+class AuthService:
+
+    def __init__(
+        self,
+        repository: AuthRepository
+    ):
+        self.repository = repository
+
+    async def register(
+        self,
+        email: str,
+        password: str,
+        role_id: str
+    ):
+
+        existing_user = (
+            await self.repository
+            .get_user_by_email(email)
+        )
+
+        if existing_user:
+            raise ValueError(
+                "User already exists"
+            )
+
+        user = User(
+            email=email,
+            password_hash=hash_password(password),
+            role_id=role_id
+        )
+
+        return await self.repository.create_user(
+            user
+        )
+
+    async def login(
+        self,
+        email: str,
+        password: str
+    ):
+
+        user = (
+            await self.repository
+            .get_user_by_email(email)
+        )
+
+        if not user:
+            raise ValueError(
+                "Invalid credentials"
+            )
+
+        if not verify_password(
+            password,
+            user.password_hash
+        ):
+            raise ValueError(
+                "Invalid credentials"
+            )
+
+        access_token = create_access_token(
+            {
+                "sub": str(user.id),
+                "email": user.email
+            }
+        )
+
+        refresh_token = create_refresh_token(
+            {
+                "sub": str(user.id)
+            }
+        )
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+```
+
+---
+
+# Phase 6 – Router
+
+## app/modules/auth/routers/auth_router.py
+
+```python
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status
+)
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database.session import get_db
+
+from app.modules.auth.schemas.auth_request import (
+    RegisterRequest,
+    LoginRequest
+)
+
+from app.modules.auth.schemas.auth_response import (
+    TokenResponse
+)
+
+from app.modules.auth.repositories.auth_repository import (
+    AuthRepository
+)
+
+from app.modules.auth.services.auth_service import (
+    AuthService
+)
+
+router = APIRouter(
+    prefix="/api/v1/auth",
+    tags=["Authentication"]
+)
+
+
+@router.post(
+    "/register",
+    summary="Register User"
+)
+async def register(
+    request: RegisterRequest,
+    db: AsyncSession = Depends(get_db)
+):
+
+    try:
+
+        service = AuthService(
+            AuthRepository(db)
+        )
+
+        user = await service.register(
+            request.email,
+            request.password,
+            request.role_id
+        )
+
+        return {
+            "id": str(user.id),
+            "email": user.email
+        }
+
+    except ValueError as ex:
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ex)
+        )
+
+
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="Authenticate User"
+)
+async def login(
+    request: LoginRequest,
+    db: AsyncSession = Depends(get_db)
+):
+
+    try:
+
+        service = AuthService(
+            AuthRepository(db)
+        )
+
+        return await service.login(
+            request.email,
+            request.password
+        )
+
+    except ValueError as ex:
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(ex)
+        )
+```
+
+---
+
+# Register Router
+
+## app/main.py
+
+```python
+from app.modules.auth.routers.auth_router import (
+    router as auth_router
+)
+
+app.include_router(auth_router)
+```
+
+---
+
+# Angular Service
+
+## src/app/core/auth/auth.service.ts
+
+```typescript
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+
+  private apiUrl =
+    'http://localhost:8000/api/v1/auth';
+
+  constructor(
+    private http: HttpClient
+  ) {}
+
+  login(
+    request: LoginRequest
+  ): Observable<TokenResponse> {
+
+    return this.http.post<TokenResponse>(
+      `${this.apiUrl}/login`,
+      request
+    );
+  }
+
+  logout(): void {
+
+    localStorage.removeItem(
+      'access_token'
+    );
+
+    localStorage.removeItem(
+      'refresh_token'
+    );
+  }
+
+  saveTokens(
+    response: TokenResponse
+  ): void {
+
+    localStorage.setItem(
+      'access_token',
+      response.access_token
+    );
+
+    localStorage.setItem(
+      'refresh_token',
+      response.refresh_token
+    );
+  }
+}
+```
+
+---
+
+# Final Commands for Developer
+
+```bash
+# Create migration
+alembic revision --autogenerate -m "create auth tables"
+
+# Run migration
+alembic upgrade head
+
+# Run backend
+uvicorn app.main:app --reload
+
+# Swagger
+http://localhost:8000/docs
+```
+
+### Expected Test Flow
+
+```text
+POST /register
+        ↓
+User Saved
+        ↓
+Password Hashed
+        ↓
+POST /login
+        ↓
+JWT Access Token
+JWT Refresh Token
+        ↓
+Angular Login
+        ↓
+Store Tokens
+```
+
+**One architect recommendation before coding:** replace the hardcoded `SECRET_KEY` immediately with a settings/config approach using `.env` and Pydantic Settings. In enterprise projects, secrets should never live in source code, even temporarily. This is a small change now and avoids rework in Sprint 2.1 when adding JWT middleware and refresh-token persistence.
 
 Keep Sprint 2 focused on **User → Login → JWT → Angular Login Flow**. Once that is working end-to-end, move to **Sprint 2.1 (JWT Middleware + Route Guards + Refresh Token Persistence)**.
