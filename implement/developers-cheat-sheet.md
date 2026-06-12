@@ -1,191 +1,232 @@
-# Enterprise E-Commerce Platform - Developer Cheat Sheet
+This is a good time to create a **Sprint 2 Developer Operations Cheat Sheet**. Keep this handy for every future sprint.
 
-## Project Structure
+# 🚀 Daily Startup Checklist
 
-```text
-ecommerce-platform/
-│
-├── backend/
-│   ├── app/
-│   ├── alembic/
-│   ├── tests/
-│   └── docker-compose.yml
-│
-└── frontend/
-    └── ecommerce-frontend/
+## 1. Go to Project
+
+```bash
+cd ~/projects/ecommerce-platform
 ```
 
 ---
 
-# Docker Commands
-
-## Start All Containers
+## 2. Start Docker Stack
 
 ```bash
 docker compose up -d
 ```
 
-## Stop All Containers
-
-```bash
-docker compose down
-```
-
-## Restart Containers
-
-```bash
-docker compose restart
-```
-
-## View Running Containers
+Check containers:
 
 ```bash
 docker ps
 ```
 
-## View All Containers
+Expected:
 
-```bash
-docker ps -a
+```text
+ecommerce-backend
+ecommerce-postgres
+ecommerce-redis
 ```
 
-## View Logs
+---
 
-```bash
-docker compose logs -f
-```
+## 3. View Logs
 
-## Backend Logs
+Backend:
 
 ```bash
 docker compose logs -f backend
 ```
 
-## PostgreSQL Logs
+Last 100 lines:
 
 ```bash
-docker compose logs -f postgres
+docker compose logs backend --tail=100
 ```
 
-## Redis Logs
+Postgres:
 
 ```bash
-docker compose logs -f redis
+docker compose logs postgres
+```
+
+Redis:
+
+```bash
+docker compose logs redis
 ```
 
 ---
 
-# Backend Commands
+# 🐳 Docker Commands
 
-## Navigate
+## Stop Everything
+
+```bash
+docker compose down
+```
+
+---
+
+## Restart Backend
+
+```bash
+docker compose restart backend
+```
+
+---
+
+## Rebuild Backend
+
+```bash
+docker compose build backend --no-cache
+```
+
+---
+
+## Rebuild Entire Stack
+
+```bash
+docker compose down
+
+docker compose build --no-cache
+
+docker compose up -d
+```
+
+---
+
+## Enter Backend Container
+
+```bash
+docker exec -it ecommerce-backend bash
+```
+
+---
+
+## Enter Postgres Container
+
+```bash
+docker exec -it ecommerce-postgres bash
+```
+
+---
+
+# 🐍 Python Virtual Environment
+
+## Activate
 
 ```bash
 cd ~/projects/ecommerce-platform/backend
+
+source venv/bin/activate
 ```
 
-## Activate Virtual Environment
-
-```bash
-source .venv/bin/activate
-```
-
-## Verify Python
-
-```bash
-python --version
-```
-
-## Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-## Run FastAPI Locally
-
-```bash
-uvicorn app.main:app --reload
-```
-
-## Open Swagger
+Prompt:
 
 ```text
-http://localhost:8000/docs
-```
-
-## Open ReDoc
-
-```text
-http://localhost:8000/redoc
+(venv)
 ```
 
 ---
 
-# Alembic Commands
-
-## Current Version
+## Deactivate
 
 ```bash
-alembic current
-```
-
-## Create Migration
-
-```bash
-alembic revision --autogenerate -m "message"
-```
-
-## Apply Migration
-
-```bash
-alembic upgrade head
-```
-
-## Rollback One Step
-
-```bash
-alembic downgrade -1
-```
-
-## Migration History
-
-```bash
-alembic history
+deactivate
 ```
 
 ---
 
-# PostgreSQL Commands
+## Install Package
+
+```bash
+pip install package_name
+```
+
+Example:
+
+```bash
+pip install bcrypt==4.1.3
+```
+
+---
+
+## Check Installed Package
+
+```bash
+pip show bcrypt
+```
+
+```bash
+pip show passlib
+```
+
+---
+
+## Generate Requirements
+
+```bash
+pip freeze > requirements.txt
+```
+
+---
+
+# 🗄️ PostgreSQL Commands
 
 ## Connect
 
 ```bash
-psql -U postgres
+docker exec -it ecommerce-postgres psql -U ecommerce_user -d ecommerce_db
 ```
 
-## List Databases
+---
 
-```sql
-\l
-```
-
-## Connect Database
-
-```sql
-\c ecommerce_db
-```
-
-## Show Tables
+## List Tables
 
 ```sql
 \dt
 ```
+
+---
 
 ## Describe Table
 
 ```sql
 \d users
 ```
+
+```sql
+\d roles
+```
+
+---
+
+## View Users
+
+```sql
+SELECT * FROM users;
+```
+
+---
+
+## View Roles
+
+```sql
+SELECT * FROM roles;
+```
+
+---
+
+## Count Records
+
+```sql
+SELECT COUNT(*) FROM users;
+```
+
+---
 
 ## Exit
 
@@ -195,185 +236,99 @@ psql -U postgres
 
 ---
 
-# Angular Commands
+# 🔄 Alembic Commands
 
-## Navigate
-
-```bash
-cd ~/projects/ecommerce-platform/frontend/ecommerce-frontend
-```
-
-## Install Packages
+## Current Version
 
 ```bash
-npm install
-```
-
-## Start Angular
-
-```bash
-ng serve
-```
-
-## Start on Custom Port
-
-```bash
-ng serve --port 4201
-```
-
-## Production Build
-
-```bash
-ng build
-```
-
-## Watch Build
-
-```bash
-ng build --watch
+alembic current
 ```
 
 ---
 
-# Angular Generate Commands
-
-## Service
+## Generate Migration
 
 ```bash
-ng g s core/auth/services/auth
+alembic revision --autogenerate -m "message"
 ```
 
-## Component
+Example:
 
 ```bash
-ng g c features/auth/pages/login
-```
-
-## Guard
-
-```bash
-ng g guard core/auth/guards/auth
-```
-
-## Interceptor
-
-```bash
-ng g interceptor core/auth/interceptors/auth
-```
-
-## Interface
-
-```bash
-ng g interface core/auth/models/auth
+alembic revision --autogenerate -m "create auth tables"
 ```
 
 ---
 
-# Testing Commands
-
-## Run All Tests
+## Apply Migration
 
 ```bash
-pytest
-```
-
-## Run Unit Tests
-
-```bash
-pytest tests/unit -v
-```
-
-## Run Integration Tests
-
-```bash
-pytest tests/integration -v
-```
-
-## Run Single Test File
-
-```bash
-pytest tests/unit/core/test_security.py -v
-```
-
-## Coverage
-
-```bash
-pytest --cov=app
-```
-
-## Coverage Report
-
-```bash
-pytest --cov=app --cov-report=html
-```
-
-Open:
-
-```text
-htmlcov/index.html
+alembic upgrade head
 ```
 
 ---
 
-# Git Commands
-
-## Status
+## Migration History
 
 ```bash
-git status
-```
-
-## Pull Latest
-
-```bash
-git pull origin main
-```
-
-## Create Branch
-
-```bash
-git checkout -b feature/auth-foundation
-```
-
-## Stage Changes
-
-```bash
-git add .
-```
-
-## Commit
-
-```bash
-git commit -m "feat(auth): add login api"
-```
-
-## Push
-
-```bash
-git push origin feature/auth-foundation
-```
-
-## View History
-
-```bash
-git log --oneline --graph
-```
-
-## Switch to Main
-
-```bash
-git checkout main
+alembic history
 ```
 
 ---
 
-# Sprint Testing URLs
+# 🔍 Project Verification
 
-## Backend
+## Find Files
 
-```text
-http://localhost:8000
+```bash
+find . -type f
 ```
+
+---
+
+## Project Structure
+
+```bash
+tree
+```
+
+Specific folder:
+
+```bash
+tree app/modules/auth
+```
+
+---
+
+## Search Text
+
+```bash
+grep -R "JWT" app
+```
+
+```bash
+grep -R "verify_password" app
+```
+
+---
+
+## Find Relationship Definitions
+
+```bash
+grep -R "relationship" app/modules/auth
+```
+
+---
+
+# 🌐 FastAPI
+
+## Run Locally
+
+```bash
+uvicorn app.main:app --reload
+```
+
+---
 
 ## Swagger
 
@@ -381,478 +336,202 @@ http://localhost:8000
 http://localhost:8000/docs
 ```
 
-## ReDoc
+---
+
+## OpenAPI
 
 ```text
-http://localhost:8000/redoc
-```
-
-## Angular
-
-```text
-http://localhost:4200
+http://localhost:8000/openapi.json
 ```
 
 ---
 
-# Daily Startup Routine
+# 🧪 Testing Commands
+
+## Quick Security Test
 
 ```bash
-# 1
-docker compose up -d
-
-# 2
-docker ps
-
-# 3
-docker compose logs backend --tail=50
-
-# 4
-cd frontend/ecommerce-frontend
-
-# 5
-ng serve
-
-# 6
-Open:
-http://localhost:8000/docs
-
-# 7
-Open:
-http://localhost:4200
+python
 ```
-
----
-
-# Daily Shutdown Routine
-
-```bash
-# Stop Angular
-CTRL + C
-
-# Stop Containers
-docker compose down
-```
-
----
-
-# Sprint 2 Verification
-
-```text
-□ Docker running
-□ PostgreSQL running
-□ Redis running
-□ Backend running
-□ Swagger available
-□ Angular running
-□ Register works
-□ Login works
-□ JWT generated
-□ Tokens stored
-□ Unit tests pass
-□ Git committed
-```
-##
----
-##
-Before starting **Manual Integration Testing**, follow this startup checklist. This is exactly how a developer would prepare their local environment for a sprint demo or QA verification.
-
-# Manual Integration Test Startup Checklist
-
-## Step 1 - Open Required Terminals
-
-Open 4 terminals:
-
-```text
-Terminal 1 → PostgreSQL
-Terminal 2 → Backend (FastAPI)
-Terminal 3 → Frontend (Angular)
-Terminal 4 → Testing / Utility Commands
-```
-
----
-
-# Step 2 - Verify PostgreSQL
-
-## Check Service
-
-Linux:
-
-```bash
-sudo systemctl status postgresql
-```
-
-Expected:
-
-```text
-active (running)
-```
-
-If not running:
-
-```bash
-sudo systemctl start postgresql
-```
-
----
-
-## Verify Database Exists
-
-```bash
-psql -U postgres
-```
-
-Inside PostgreSQL:
-
-```sql
-\l
-```
-
-Verify:
-
-```text
-ecommerce_db
-```
-
-exists.
-
----
-
-## Verify Tables
-
-```sql
-\c ecommerce_db
-
-\dt
-```
-
-Expected:
-
-```text
-users
-roles
-alembic_version
-```
-
----
-
-# Step 3 - Verify Environment Variables
-
-Navigate to backend:
-
-```bash
-cd ~/projects/ecommerce-platform/backend
-```
-
-Verify:
-
-```bash
-ls -la
-```
-
-Expected:
-
-```text
-.env
-```
-
-exists.
-
-Example:
-
-```env
-DATABASE_URL=postgresql+asyncpg://postgres:password@localhost/ecommerce_db
-
-SECRET_KEY=your-secret-key
-
-JWT_ALGORITHM=HS256
-```
-
----
-
-# Step 4 - Activate Python Virtual Environment
-
-Backend folder:
-
-```bash
-cd ~/projects/ecommerce-platform/backend
-```
-
-Activate:
-
-```bash
-source .venv/bin/activate
-```
-
-Verify:
-
-```bash
-which python
-```
-
-Expected:
-
-```text
-.../.venv/bin/python
-```
-
----
-
-# Step 5 - Verify Dependencies
-
-```bash
-pip list
-```
-
-Verify:
-
-```text
-fastapi
-uvicorn
-sqlalchemy
-alembic
-asyncpg
-python-jose
-passlib
-bcrypt
-```
-
----
-
-# Step 6 - Run Database Migration
-
-Only if not already applied.
-
-```bash
-alembic current
-```
-
-Verify current revision.
-
-Apply latest:
-
-```bash
-alembic upgrade head
-```
-
-Expected:
-
-```text
-Running upgrade
-```
-
-No errors.
-
----
-
-# Step 7 - Seed Roles
-
-Verify:
-
-```sql
-SELECT * FROM roles;
-```
-
-Expected:
-
-```text
-ADMIN
-CUSTOMER
-```
-
-If empty:
-
-```sql
-INSERT INTO roles(id,name)
-VALUES
-(gen_random_uuid(),'ADMIN'),
-(gen_random_uuid(),'CUSTOMER');
-```
-
----
-
-# Step 8 - Start FastAPI
-
-Terminal 2:
-
-```bash
-cd ~/projects/ecommerce-platform/backend
-source .venv/bin/activate
-
-uvicorn app.main:app --reload
-```
-
-Expected:
-
-```text
-Application startup complete.
-Uvicorn running on http://127.0.0.1:8000
-```
-
----
-
-# Step 9 - Verify Backend
-
-Open browser:
-
-```text
-http://localhost:8000/docs
-```
-
-Expected:
-
-```text
-Swagger UI
-```
-
-Verify:
-
-```text
-POST /register
-POST /login
-```
-
-visible.
-
----
-
-# Step 10 - Verify CORS Configuration
-
-Check:
 
 ```python
-CORSMiddleware
+from app.core.security import hash_password
+
+print(hash_password("Admin123"))
 ```
 
-Expected:
+---
+
+## Import Test
+
+```bash
+python -c "from app.modules.auth.models.user import User; print('OK')"
+```
+
+---
+
+## JWT Decode (without verification)
+
+```bash
+python
+```
 
 ```python
-allow_origins=[
-    "http://localhost:4200"
-]
-```
+import jwt
 
-Without this Angular login may fail.
+print(jwt.decode(token, options={"verify_signature": False}))
+```
 
 ---
 
-# Step 11 - Start Angular
+# 🌿 Git Commands
 
-Terminal 3:
+## Status
 
 ```bash
-cd ~/projects/ecommerce-platform/frontend/ecommerce-frontend
+git status
 ```
 
-Verify packages:
+---
+
+## Branches
 
 ```bash
-npm install
+git branch
 ```
 
-Start:
+---
+
+## Create Backup Branch
 
 ```bash
-ng serve
-```
-
-Expected:
-
-```text
-Local: http://localhost:4200
+git checkout -b backup-sprint3
 ```
 
 ---
 
-# Step 12 - Verify Angular Environment
+## Add Files
 
-Check:
-
-```text
-src/environments/environment.ts
-```
-
-Expected:
-
-```typescript
-export const environment = {
-  apiUrl: 'http://localhost:8000/api/v1'
-};
+```bash
+git add .
 ```
 
 ---
 
-# Step 13 - Open Browser Developer Tools
+## Commit
 
-Open:
-
-```text
-F12
+```bash
+git commit -m "message"
 ```
-
-Keep these tabs visible:
-
-```text
-Network
-Console
-Application → Local Storage
-```
-
-These are needed during testing.
 
 ---
 
-# Step 14 - Health Check Before Testing
+## Push
 
-Verify all URLs:
-
-| Service    | URL                                                      | Expected |
-| ---------- | -------------------------------------------------------- | -------- |
-| FastAPI    | [http://localhost:8000/docs](http://localhost:8000/docs) | Opens    |
-| Angular    | [http://localhost:4200](http://localhost:4200)           | Opens    |
-| PostgreSQL | psql connection                                          | Works    |
+```bash
+git push origin main
+```
 
 ---
 
-# Step 15 - Ready State
+## Pull Latest
 
-All must be green:
-
-```text
-□ PostgreSQL running
-
-□ Database reachable
-
-□ Roles seeded
-
-□ Migration applied
-
-□ Virtual environment active
-
-□ FastAPI running
-
-□ Swagger opens
-
-□ Angular running
-
-□ Browser DevTools open
-
-□ CORS configured
-
-□ No startup errors
+```bash
+git pull origin main --rebase
 ```
 
-Only after all boxes are checked should you begin the Manual Integration Test sequence:
+---
 
-```text
-1. Register User
-2. Verify DB Record
-3. Verify Password Hash
-4. Login User
-5. Verify JWT
-6. Verify Angular Login
-7. Verify Local Storage
-8. Verify Logout
+## View History
+
+```bash
+git log --oneline --decorate -10
 ```
 
-This preparation step typically saves 80–90% of the "why is login not working?" troubleshooting time during Sprint 2 testing.
+---
+
+## Tags
+
+```bash
+git tag
+```
+
+Create:
+
+```bash
+git tag -a sprint-3-complete -m "Sprint 3 Complete"
+```
+
+Push:
+
+```bash
+git push origin sprint-3-complete
+```
+
+---
+
+# 🚑 Emergency Troubleshooting
+
+## Container Restarting
+
+```bash
+docker compose logs backend --tail=200
+```
+
+---
+
+## Verify Environment Variables
+
+```bash
+cat backend/.env
+```
+
+---
+
+## Verify Installed Package in Container
+
+```bash
+docker exec -it ecommerce-backend pip show bcrypt
+```
+
+---
+
+## Verify Running Containers
+
+```bash
+docker ps -a
+```
+
+---
+
+## Check Backend Files in Container
+
+```bash
+docker exec -it ecommerce-backend find /app -type f
+```
+
+---
+
+# 📋 Sprint Workflow (Recommended)
+
+```text
+1. git pull origin main --rebase
+
+2. docker compose up -d
+
+3. Verify Swagger
+
+4. Implement ONE endpoint
+
+5. Test in Swagger
+
+6. Verify DB
+
+7. Commit
+
+8. Push
+
+9. Tag Sprint Milestone
+```
+
+This cheat sheet covers about **90% of the commands** we used today during Sprint 2 and should save a lot of time during Sprint 3 and beyond.
