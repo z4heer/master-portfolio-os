@@ -452,3 +452,407 @@ docker compose down
 □ Unit tests pass
 □ Git committed
 ```
+##
+---
+##
+Before starting **Manual Integration Testing**, follow this startup checklist. This is exactly how a developer would prepare their local environment for a sprint demo or QA verification.
+
+# Manual Integration Test Startup Checklist
+
+## Step 1 - Open Required Terminals
+
+Open 4 terminals:
+
+```text
+Terminal 1 → PostgreSQL
+Terminal 2 → Backend (FastAPI)
+Terminal 3 → Frontend (Angular)
+Terminal 4 → Testing / Utility Commands
+```
+
+---
+
+# Step 2 - Verify PostgreSQL
+
+## Check Service
+
+Linux:
+
+```bash
+sudo systemctl status postgresql
+```
+
+Expected:
+
+```text
+active (running)
+```
+
+If not running:
+
+```bash
+sudo systemctl start postgresql
+```
+
+---
+
+## Verify Database Exists
+
+```bash
+psql -U postgres
+```
+
+Inside PostgreSQL:
+
+```sql
+\l
+```
+
+Verify:
+
+```text
+ecommerce_db
+```
+
+exists.
+
+---
+
+## Verify Tables
+
+```sql
+\c ecommerce_db
+
+\dt
+```
+
+Expected:
+
+```text
+users
+roles
+alembic_version
+```
+
+---
+
+# Step 3 - Verify Environment Variables
+
+Navigate to backend:
+
+```bash
+cd ~/projects/ecommerce-platform/backend
+```
+
+Verify:
+
+```bash
+ls -la
+```
+
+Expected:
+
+```text
+.env
+```
+
+exists.
+
+Example:
+
+```env
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost/ecommerce_db
+
+SECRET_KEY=your-secret-key
+
+JWT_ALGORITHM=HS256
+```
+
+---
+
+# Step 4 - Activate Python Virtual Environment
+
+Backend folder:
+
+```bash
+cd ~/projects/ecommerce-platform/backend
+```
+
+Activate:
+
+```bash
+source .venv/bin/activate
+```
+
+Verify:
+
+```bash
+which python
+```
+
+Expected:
+
+```text
+.../.venv/bin/python
+```
+
+---
+
+# Step 5 - Verify Dependencies
+
+```bash
+pip list
+```
+
+Verify:
+
+```text
+fastapi
+uvicorn
+sqlalchemy
+alembic
+asyncpg
+python-jose
+passlib
+bcrypt
+```
+
+---
+
+# Step 6 - Run Database Migration
+
+Only if not already applied.
+
+```bash
+alembic current
+```
+
+Verify current revision.
+
+Apply latest:
+
+```bash
+alembic upgrade head
+```
+
+Expected:
+
+```text
+Running upgrade
+```
+
+No errors.
+
+---
+
+# Step 7 - Seed Roles
+
+Verify:
+
+```sql
+SELECT * FROM roles;
+```
+
+Expected:
+
+```text
+ADMIN
+CUSTOMER
+```
+
+If empty:
+
+```sql
+INSERT INTO roles(id,name)
+VALUES
+(gen_random_uuid(),'ADMIN'),
+(gen_random_uuid(),'CUSTOMER');
+```
+
+---
+
+# Step 8 - Start FastAPI
+
+Terminal 2:
+
+```bash
+cd ~/projects/ecommerce-platform/backend
+source .venv/bin/activate
+
+uvicorn app.main:app --reload
+```
+
+Expected:
+
+```text
+Application startup complete.
+Uvicorn running on http://127.0.0.1:8000
+```
+
+---
+
+# Step 9 - Verify Backend
+
+Open browser:
+
+```text
+http://localhost:8000/docs
+```
+
+Expected:
+
+```text
+Swagger UI
+```
+
+Verify:
+
+```text
+POST /register
+POST /login
+```
+
+visible.
+
+---
+
+# Step 10 - Verify CORS Configuration
+
+Check:
+
+```python
+CORSMiddleware
+```
+
+Expected:
+
+```python
+allow_origins=[
+    "http://localhost:4200"
+]
+```
+
+Without this Angular login may fail.
+
+---
+
+# Step 11 - Start Angular
+
+Terminal 3:
+
+```bash
+cd ~/projects/ecommerce-platform/frontend/ecommerce-frontend
+```
+
+Verify packages:
+
+```bash
+npm install
+```
+
+Start:
+
+```bash
+ng serve
+```
+
+Expected:
+
+```text
+Local: http://localhost:4200
+```
+
+---
+
+# Step 12 - Verify Angular Environment
+
+Check:
+
+```text
+src/environments/environment.ts
+```
+
+Expected:
+
+```typescript
+export const environment = {
+  apiUrl: 'http://localhost:8000/api/v1'
+};
+```
+
+---
+
+# Step 13 - Open Browser Developer Tools
+
+Open:
+
+```text
+F12
+```
+
+Keep these tabs visible:
+
+```text
+Network
+Console
+Application → Local Storage
+```
+
+These are needed during testing.
+
+---
+
+# Step 14 - Health Check Before Testing
+
+Verify all URLs:
+
+| Service    | URL                                                      | Expected |
+| ---------- | -------------------------------------------------------- | -------- |
+| FastAPI    | [http://localhost:8000/docs](http://localhost:8000/docs) | Opens    |
+| Angular    | [http://localhost:4200](http://localhost:4200)           | Opens    |
+| PostgreSQL | psql connection                                          | Works    |
+
+---
+
+# Step 15 - Ready State
+
+All must be green:
+
+```text
+□ PostgreSQL running
+
+□ Database reachable
+
+□ Roles seeded
+
+□ Migration applied
+
+□ Virtual environment active
+
+□ FastAPI running
+
+□ Swagger opens
+
+□ Angular running
+
+□ Browser DevTools open
+
+□ CORS configured
+
+□ No startup errors
+```
+
+Only after all boxes are checked should you begin the Manual Integration Test sequence:
+
+```text
+1. Register User
+2. Verify DB Record
+3. Verify Password Hash
+4. Login User
+5. Verify JWT
+6. Verify Angular Login
+7. Verify Local Storage
+8. Verify Logout
+```
+
+This preparation step typically saves 80–90% of the "why is login not working?" troubleshooting time during Sprint 2 testing.
