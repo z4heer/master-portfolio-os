@@ -1,3 +1,525 @@
+##
+# Sprint 2 Local Testing Guide
+
+After the developer completes the code, follow these steps in sequence. Do **not** jump directly to Angular testing.
+
+---
+
+# Phase 1 - Verify PostgreSQL
+
+## Start PostgreSQL
+
+Verify service is running.
+
+### Windows
+
+```bash
+services.msc
+```
+
+Check:
+
+```text
+postgresql-x64-17
+Status = Running
+```
+
+---
+
+## Connect PostgreSQL
+
+```bash
+psql -U postgres
+```
+
+or
+
+```bash
+psql -U ecommerce_user -d ecommerce_db
+```
+
+---
+
+## Verify Database
+
+```sql
+SELECT version();
+```
+
+Expected:
+
+```text
+PostgreSQL 17.x
+```
+
+---
+
+# Phase 2 - Verify Migration
+
+## Generate Migration
+
+```bash
+alembic revision --autogenerate -m "create auth tables"
+```
+
+Expected:
+
+```text
+Generating migration ...
+```
+
+---
+
+## Apply Migration
+
+```bash
+alembic upgrade head
+```
+
+Expected:
+
+```text
+Running upgrade ...
+```
+
+No errors.
+
+---
+
+## Verify Tables
+
+```sql
+\d roles
+\d users
+```
+
+Expected:
+
+```text
+roles
+users
+```
+
+---
+
+## Verify Foreign Key
+
+```sql
+SELECT
+    tc.table_name,
+    kcu.column_name,
+    ccu.table_name AS foreign_table_name
+FROM
+    information_schema.table_constraints tc
+JOIN
+    information_schema.key_column_usage kcu
+ON
+    tc.constraint_name = kcu.constraint_name
+JOIN
+    information_schema.constraint_column_usage ccu
+ON
+    ccu.constraint_name = tc.constraint_name
+WHERE
+    constraint_type = 'FOREIGN KEY';
+```
+
+Expected:
+
+```text
+users.role_id -> roles.id
+```
+
+---
+
+# Phase 3 - Seed Role Data
+
+Insert initial roles.
+
+```sql
+INSERT INTO roles(id,name)
+VALUES
+(gen_random_uuid(),'ADMIN'),
+(gen_random_uuid(),'CUSTOMER');
+```
+
+Verify:
+
+```sql
+SELECT * FROM roles;
+```
+
+Expected:
+
+```text
+ADMIN
+CUSTOMER
+```
+
+Copy one role id.
+
+You will use it for registration.
+
+---
+
+# Phase 4 - Verify Security Functions
+
+Create temporary file:
+
+```text
+test_security.py
+```
+
+```python
+from app.core.security import *
+
+password = "Admin123"
+
+hashed = hash_password(password)
+
+print(hashed)
+
+print(
+    verify_password(
+        password,
+        hashed
+    )
+)
+```
+
+Run:
+
+```bash
+python test_security.py
+```
+
+Expected:
+
+```text
+$2b$12.....
+True
+```
+
+---
+
+# Phase 5 - Run FastAPI
+
+## Start Server
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Expected:
+
+```text
+INFO: Uvicorn running
+```
+
+---
+
+## Health Check
+
+Open:
+
+```text
+http://localhost:8000/docs
+```
+
+Expected Swagger page.
+
+You should see:
+
+```text
+Authentication
+
+POST /register
+POST /login
+```
+
+---
+
+# Phase 6 - Test Register API
+
+Use Swagger.
+
+## Request
+
+```json
+{
+  "email": "admin@test.com",
+  "password": "Admin123",
+  "role_id": "ROLE_UUID"
+}
+```
+
+Replace ROLE_UUID with actual role id.
+
+---
+
+## Expected Response
+
+```json
+{
+  "id": "user_uuid",
+  "email": "admin@test.com"
+}
+```
+
+---
+
+## Verify Database
+
+```sql
+SELECT
+email,
+password_hash
+FROM users;
+```
+
+Expected:
+
+```text
+admin@test.com
+$2b$12.....
+```
+
+### Important
+
+Password must NOT appear as:
+
+```text
+Admin123
+```
+
+If it does:
+
+```text
+FAIL
+```
+
+---
+
+# Phase 7 - Duplicate Registration Test
+
+Attempt same email again.
+
+Expected:
+
+```json
+{
+  "detail": "User already exists"
+}
+```
+
+Status:
+
+```text
+400
+```
+
+---
+
+# Phase 8 - Login Test
+
+Swagger:
+
+```json
+{
+  "email": "admin@test.com",
+  "password": "Admin123"
+}
+```
+
+Expected:
+
+```json
+{
+  "access_token": "...",
+  "refresh_token": "...",
+  "token_type": "bearer"
+}
+```
+
+---
+
+# Phase 9 - Invalid Login Test
+
+Wrong password.
+
+```json
+{
+  "email": "admin@test.com",
+  "password": "WrongPassword"
+}
+```
+
+Expected:
+
+```json
+{
+  "detail": "Invalid credentials"
+}
+```
+
+Status:
+
+```text
+401
+```
+
+---
+
+# Phase 10 - Verify JWT
+
+Copy access token.
+
+Open:
+
+```text
+https://jwt.io
+```
+
+Paste token.
+
+Expected Payload:
+
+```json
+{
+  "sub": "user_uuid",
+  "email": "admin@test.com",
+  "exp": 123456789
+}
+```
+
+---
+
+# Phase 11 - Angular Test
+
+Start Angular.
+
+```bash
+ng serve
+```
+
+Expected:
+
+```text
+http://localhost:4200
+```
+
+---
+
+## Open Browser
+
+Navigate:
+
+```text
+http://localhost:4200/login
+```
+
+---
+
+## Login
+
+Use:
+
+```text
+admin@test.com
+Admin123
+```
+
+Expected:
+
+```text
+Login success
+```
+
+---
+
+## Verify Local Storage
+
+Press:
+
+```text
+F12
+```
+
+Open:
+
+```text
+Application
+ → Local Storage
+```
+
+Expected:
+
+```text
+access_token
+refresh_token
+```
+
+present.
+
+---
+
+# Phase 12 - Logout Test
+
+Click Logout.
+
+Expected:
+
+```text
+access_token removed
+refresh_token removed
+```
+
+Verify Local Storage is empty.
+
+---
+
+# Sprint 2 Test Matrix
+
+| Test Case          | Expected |
+| ------------------ | -------- |
+| Migration          | PASS     |
+| Role Insert        | PASS     |
+| User Register      | PASS     |
+| Duplicate Register | PASS     |
+| Password Hash      | PASS     |
+| Login              | PASS     |
+| Invalid Login      | PASS     |
+| JWT Generated      | PASS     |
+| Swagger Visible    | PASS     |
+| Angular Login      | PASS     |
+| Local Storage      | PASS     |
+| Logout             | PASS     |
+
+---
+
+# Final Sign-Off Checklist
+
+Before marking Sprint 2 complete:
+
+```text
+□ PostgreSQL working
+□ Alembic migration successful
+□ Roles seeded
+□ User registration working
+□ Password hashed
+□ Login working
+□ JWT generated
+□ Swagger verified
+□ Angular login working
+□ Tokens stored
+□ Logout working
+□ Git committed
+□ Code pushed
+```
+
+If all boxes are checked, Sprint 2 is complete and you're ready for **Sprint 2.1: JWT Middleware, Refresh Endpoint, HTTP Interceptor, Route Guards, and RBAC Foundation**.
+
+----
+##
 Given your project approach and the fact that you're learning while building, I would **not code everything at once**. Complete Sprint 2 in small, testable increments.
 
 # Sprint 2 Developer Execution Plan
