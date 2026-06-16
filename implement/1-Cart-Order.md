@@ -2752,3 +2752,68 @@ The module is ready for Solution Architect review only when all four checks belo
 Once these are completed and evidenced (API responses + DB verification), the implementation satisfies the sprint requirements and is ready for architectural review.
 
 ##
+Sounds good.
+
+You've uncovered a few important architectural gaps early (especially the missing `get_current_user()`), which is exactly the kind of thing that saves time before the Orders module gets deeply integrated.
+
+As the team progresses, I'd recommend having them pause for a quick review at these checkpoints:
+
+### Checkpoint 1 — AUTH-05 Complete
+
+Verify:
+
+* JWT login returns valid tokens
+* `decode_token()` works
+* `get_current_user()` works
+* `require_admin()` works
+* `require_customer()` works
+* Product endpoints enforce ADMIN access
+
+### Checkpoint 2 — Models + Migration Complete
+
+Verify:
+
+* `orders` table created
+* `order_items` table created
+* FK constraints valid
+* Enum created correctly
+* Migration applies cleanly on a fresh database
+
+### Checkpoint 3 — Service Layer Complete
+
+Verify:
+
+* Product existence validation
+* Inventory validation
+* Inventory decrement
+* Order total calculation
+* Unit price snapshotting
+* Rollback behavior
+
+### Checkpoint 4 — End-to-End Integration
+
+Verify:
+
+* CUSTOMER creates order successfully
+* ADMIN cannot create order
+* CUSTOMER cannot create/update products
+* Insufficient inventory returns correct error
+* Failed order does not modify inventory
+
+### Before Architect Review
+
+Ask the developer to provide:
+
+```text
+1. Git PR / branch
+2. Updated directory structure
+3. Alembic migration
+4. Postman/Bruno collection
+5. Integration test evidence
+6. Known issues list
+```
+
+When the team reaches any of those checkpoints—or if they run into migration, RBAC, transaction, or SQLAlchemy issues—bring the updated files or PR diff and I can do a Solution Architect–style review before formal review. That usually catches 80–90% of the issues before they reach architecture sign-off.
+
+Good luck with the implementation. I'll be ready to review the next iteration when the team has it.
+##
