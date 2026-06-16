@@ -1,3 +1,45 @@
+##
+This prompt is designed to activate the **Lead Developer AI** role, focusing on the **Cart & Orders Backend Module** (Action Item 4B). It incorporates your existing "Service Layer" and "Repository" patterns and addresses the specific requirements for inventory validation and order management found in your blueprints.
+
+### **AI Lead Developer Command: Action Item 4B**
+
+Copy and paste the following into your AI coding assistant:
+
+> "Act as a **Lead Python Developer** specialized in **FastAPI** and **SQLAlchemy 2.0**. We are starting the **Cart & Orders Backend Module** for our Enterprise E-Commerce platform. 
+>
+> **Project Status:** 
+> * **Completed:** Auth (JWT/RBAC) and Product Catalog (with Redis caching).
+> * **Architecture:** Modular Monolith using **Service Layer** and **Repository** patterns.
+> * **Tech Stack:** PostgreSQL 17, Redis 8, Docker.
+>
+> **Task Requirements:**
+> 1. **Database Schema (SQLAlchemy):** 
+>    * Create an `Order` model: `id` (UUID), `user_id` (FK to Users), `total_amount` (Numeric), `status` (Enum: PENDING, COMPLETED, CANCELLED), and `created_at`.
+>    * Create an `OrderItem` model: `id` (UUID), `order_id` (FK to Orders), `product_id` (FK to Products), `quantity` (Integer), and `unit_price` (Numeric - must store the price at the time of purchase).
+>
+> 2. **Inventory Validation Service:** 
+>    * Implement a logic in the `InventoryService` to validate stock levels. Before an order is created, it must check the `inventory` table to ensure `stock_quantity >= requested_quantity` for every item in the cart.
+>    * If validation passes, create the order and **atomically decrement** the `stock_quantity` in the `inventory` table.
+>
+> 3. **API Development:** 
+>    * Implement `POST /api/v1/orders`: This endpoint must require a **JWT (CUSTOMER role)**. It should accept a list of product IDs and quantities, trigger the inventory validation, and return the created order details.
+>
+> 4. **RBAC Fix (Security Alignment):** 
+>    * Ensure that the `POST /api/v1/products` and `PUT /api/v1/products/{id}` endpoints created in the previous sprint are strictly enforced for the **ADMIN** role only.
+>
+> 5. **Alembic Migrations:** 
+>    * Generate the script for the new `orders` and `order_items` tables.
+>
+> Please provide the solution in a modular format consistent with our established directory structure (repositories, services, schemas, and routers)."
+
+---
+
+### **Why this prompt is effective for Action Item 4B:**
+*   **Inventory Accuracy:** It specifically targets the **>99% Inventory accuracy KPI** defined in your BRD by requiring atomic transactions and strict stock validation.
+*   **Solution Architect Standards:** By using **UUIDs** and a **Service Layer**, the code remains decoupled and enterprise-grade, moving away from simple "tutorial" logic.
+*   **Security Debt Management:** It forces the AI to address the **deferred RBAC issue** identified in your recent integration tests, ensuring your security model is tightened before moving forward.
+*   **Transactional Integrity:** It requires the "unit_price" to be saved in the `Order_Items` table, reflecting a real-world business requirement where product prices may change over time but must remain fixed for historical orders.
+##
 Your plan to finalize the Product Module and transition into the **Cart & Orders** backend is a significant step toward completing your flagship project. Below are the specific AI prompts designed to help you execute these three critical tasks with "Solution Architect" level precision.
 
 ### **Prompt 1: Full-Cycle Backend Integration Testing (Plan Item 3)**
