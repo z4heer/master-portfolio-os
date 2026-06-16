@@ -1,3 +1,644 @@
+##
+Yes, there **must be changes**.
+
+After reviewing your actual codebase, I would **not give the junior developer the earlier FastAPI + AsyncSession + Repository constructor version** because it was based on assumptions that don't match your project.
+
+Your project currently uses:
+
+```text
+Sync SQLAlchemy Session
+Repository classes without constructor injection
+Service layer owns commit()
+Role model with role.name
+ProductRepository.get_by_id(db, product_id)
+```
+
+So the Orders implementation should be aligned with the existing code style.
+
+---
+
+# Revised Implementation Plan
+
+The junior developer should complete work in this order:
+
+```text
+AUTH-05
+    ↓
+ORD-01 Models
+    ↓
+ORD-02 Repository
+    ↓
+ORD-03 Inventory Service
+    ↓
+ORD-04 Order Service
+    ↓
+ORD-05 Router
+    ↓
+ORD-06 Migration
+    ↓
+Integration Testing
+```
+
+---
+
+# AUTH-05 (Required Before Orders)
+
+Implement:
+
+```text
+app/modules/auth/dependencies.py
+```
+
+with:
+
+```python
+get_current_user()
+require_admin()
+require_customer()
+```
+
+and add:
+
+```python
+decode_token()
+```
+
+to:
+
+```text
+app/core/security.py
+```
+
+This is required before Orders.
+
+---
+
+# ORD-01 Create Models
+
+## File
+
+```text
+app/modules/orders/models/order.py
+```
+
+---
+
+## OrderStatus Enum
+
+```python
+from enum import Enum
+
+
+class OrderStatus(str, Enum):
+    PENDING = "PENDING"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+```
+
+---
+
+## Order Model
+
+```python
+import uuid
+
+from decimal import Decimal
+
+from sqlalchemy import (
+    Enum,
+    ForeignKey,
+    Numeric,
+    DateTime
+)
+
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship
+)
+
+from sqlalchemy.sql import func
+
+from sqlalchemy.dialects.postgresql import UUID
+
+from app.database.base import Base
+```
+
+```python
+class Order(Base):
+
+    __tablename__ = "orders"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
+    total_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        nullable=False
+    )
+
+    status: Mapped[OrderStatus] = mapped_column(
+        Enum(
+            OrderStatus,
+            name="order_status_enum"
+        ),
+        nullable=False,
+        default=OrderStatus.PENDING
+    )
+
+    created_at = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    items = relationship(
+        "OrderItem",
+        back_populates="order",
+        cascade="all, delete-orphan"
+    )
+```
+
+---
+
+## OrderItem Model
+
+```python
+class OrderItem(Base):
+
+    __tablename__ = "order_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4
+    )
+
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "orders.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False
+    )
+
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("products.id"),
+        nullable=False
+    )
+
+    quantity: Mapped[int] = mapped_column(
+        nullable=False
+    )
+
+    unit_price: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2),
+        nullable=False
+    )
+
+    order = relationship(
+        "Order",
+        back_populates="items"
+    )
+```
+
+---
+
+# ORD-02 Repository
+
+## File
+
+```text
+app/modules/orders/repositories/order_repository.py
+```
+
+```python
+from app.modules.orders.models.order import (
+    Order,
+    OrderItem
+)
+```
+
+---
+
+## Create Order
+
+```python
+class OrderRepository:
+
+    def create(
+        self,
+        db,
+        order: Order
+    ):
+        db.add(order)
+        db.flush()
+        db.refresh(order)
+
+        return order
+```
+
+---
+
+## Create Item
+
+```python
+    def create_item(
+        self,
+        db,
+        item: OrderItem
+    ):
+        db.add(item)
+        db.flush()
+
+        return item
+```
+
+---
+
+## Get Order With Items
+
+```python
+from sqlalchemy.orm import joinedload
+```
+
+```python
+    def get_by_id(
+        self,
+        db,
+        order_id
+    ):
+        return (
+            db.query(Order)
+            .options(
+                joinedload(Order.items)
+            )
+            .filter(
+                Order.id == order_id
+            )
+            .first()
+        )
+```
+
+---
+
+# ORD-03 Inventory Service
+
+## File
+
+```text
+app/modules/orders/services/inventory_service.py
+```
+
+---
+
+### Validate and Reserve
+
+```python
+from fastapi import HTTPException
+```
+
+```python
+class InventoryService:
+
+    def __init__(self):
+
+        self.inventory_repo = InventoryRepository()
+```
+
+```python
+    def validate_and_reserve(
+        self,
+        db,
+        items
+    ):
+```
+
+Loop:
+
+```python
+for item in items:
+```
+
+Load inventory.
+
+Validate:
+
+```python
+if not inventory:
+    raise HTTPException(
+        status_code=404,
+        detail="Inventory not found"
+    )
+```
+
+Validate stock:
+
+```python
+if inventory.stock_quantity < item.quantity:
+    raise HTTPException(
+        status_code=400,
+        detail="Insufficient stock"
+    )
+```
+
+Reserve:
+
+```python
+inventory.stock_quantity -= item.quantity
+```
+
+---
+
+# ORD-04 Order Service
+
+## File
+
+```text
+app/modules/orders/services/order_service.py
+```
+
+---
+
+## Constructor
+
+```python
+class OrderService:
+
+    def __init__(self):
+
+        self.order_repo = OrderRepository()
+
+        self.product_repo = ProductRepository()
+
+        self.inventory_service = InventoryService()
+```
+
+---
+
+## Create Order
+
+```python
+def create_order(
+    self,
+    db,
+    user_id,
+    payload
+):
+```
+
+---
+
+Create order:
+
+```python
+order = Order(
+    user_id=user_id,
+    total_amount=0,
+    status=OrderStatus.PENDING
+)
+```
+
+Persist:
+
+```python
+self.order_repo.create(
+    db,
+    order
+)
+```
+
+---
+
+Calculate total:
+
+```python
+total_amount = 0
+```
+
+---
+
+Loop items:
+
+```python
+for item in payload.items:
+```
+
+Load product:
+
+```python
+product = self.product_repo.get_by_id(
+    db,
+    item.product_id
+)
+```
+
+---
+
+### Mandatory Fix
+
+```python
+if not product:
+    raise HTTPException(
+        status_code=404,
+        detail=f"Product {item.product_id} not found"
+    )
+```
+
+---
+
+Create item:
+
+```python
+order_item = OrderItem(
+    order_id=order.id,
+    product_id=product.id,
+    quantity=item.quantity,
+    unit_price=product.price
+)
+```
+
+Persist:
+
+```python
+self.order_repo.create_item(
+    db,
+    order_item
+)
+```
+
+Update total:
+
+```python
+total_amount += (
+    product.price * item.quantity
+)
+```
+
+---
+
+Finalize:
+
+```python
+order.total_amount = total_amount
+```
+
+Commit:
+
+```python
+db.commit()
+```
+
+Refresh:
+
+```python
+db.refresh(order)
+```
+
+Return:
+
+```python
+return self.order_repo.get_by_id(
+    db,
+    order.id
+)
+```
+
+---
+
+# Important Rollback Change
+
+Wrap service logic:
+
+```python
+try:
+    ...
+    db.commit()
+
+except Exception:
+    db.rollback()
+    raise
+```
+
+Because your project is not using:
+
+```python
+with db.begin()
+```
+
+today.
+
+This is one of the most important changes from the earlier design.
+
+---
+
+# ORD-05 Router
+
+## File
+
+```text
+app/modules/orders/routers/order_router.py
+```
+
+---
+
+Protect endpoint:
+
+```python
+current_user=Depends(
+    require_customer
+)
+```
+
+---
+
+Endpoint:
+
+```python
+@router.post(
+    "",
+    response_model=OrderResponse,
+    status_code=201
+)
+```
+
+Call:
+
+```python
+service.create_order(
+    db=db,
+    user_id=current_user.id,
+    payload=payload
+)
+```
+
+---
+
+# ORD-06 Migration
+
+Generate:
+
+```bash
+alembic revision --autogenerate -m "create orders tables"
+```
+
+Review generated migration.
+
+Apply:
+
+```bash
+alembic upgrade head
+```
+
+---
+
+# Additional Mandatory Fix Based on Your Codebase
+
+Ask the junior developer to remove any comments like:
+
+```python
+# get_current_user() assumed
+```
+
+from routers.
+
+After AUTH-05, all imports should be real:
+
+```python
+from app.modules.auth.dependencies import (
+    get_current_user,
+    require_admin,
+    require_customer
+)
+```
+
+---
+
+## Final Architect Review Scope
+
+After AUTH-05 and ORD-01 through ORD-06 are completed, the architect should review:
+
+* JWT authentication flow
+* RBAC enforcement
+* Product existence validation
+* Order response contains items
+* Transaction rollback behavior
+* Inventory decrement correctness
+* Alembic migration quality
+
+At that point, the implementation will be aligned with your **actual synchronous SQLAlchemy architecture**, rather than the earlier generic async example.
+
+##
 For a **Junior Developer**, I would break this into small, reviewable tasks with clear acceptance criteria. The goal is to get a working implementation first, not a highly optimized one.
 
 ---
