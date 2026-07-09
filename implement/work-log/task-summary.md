@@ -1,56 +1,60 @@
-Following the **Proposed Execution Framework**, I have prepared the **Implementation Package** for **Sprint 4.4 — System Integration Testing (SIT) Phases 3 through 7**. 
+Following the **Proposed Execution Framework**, we are pausing the **System Integration Testing (SIT)** to address the critical functional gap identified: the missing **"Add to Cart"** capability within the Product List.
 
-With the environment and authentication foundations (Phases 1 & 2) now verified and passed, we move into the **Functional Integration** of the core business engine. This phase validates that your specialized modules—RBAC, Product Catalog, Cart, and Orders—operate as a unified enterprise system.
+As the **Principal Architect**, I have prepared the formal **Implementation Package** for this task to ensure it integrates seamlessly with your **Enterprise Design System**.
 
 ### **Role 1: Architecture Review & Design Decisions**
-*   **Objective:** Validate end-to-end data integrity and security enforcement across the full user journey (Browse → Cart → Checkout → Order History).
-*   **Security (RBAC):** Verification that the **Authorization Interceptor** and **Route Guards** correctly return a 403 Forbidden status when a Customer attempts to access Admin resources.
-*   **State Integrity:** Ensure the **Angular Signals** managing the Cart and Order states stay synchronized with the backend during high-frequency updates (e.g., rapid quantity changes).
-*   **Data Validation:** Confirm the backend correctly handles atomic inventory deductions during the checkout transition to prevent overselling.
-*   **Performance:** Loading skeletons must be verified for all data-heavy views (Product List and Dashboard) to maintain perceived speed.
+
+*   **Objective:** Integrate the "Add to Cart" trigger into the `ProductListComponent` cards, enabling the core customer journey from browsing to shopping.
+*   **Service Integration:** The component will consume the `addToCart(product)` method from the already established and verified **Signal-based `CartService`**.
+*   **UI Pattern:** The action button will be placed within the `actions` slot of the existing `AppCard` component to maintain visual consistency.
+*   **State Management:** The "Add" action must trigger a reactive update to the cart signals, which in turn updates the global navigation counter in the `Toolbar`.
+*   **User Feedback:** Use the `NotificationService` to trigger a **Material Snackbar** upon a successful add, replacing the legacy `console.log` approach.
+*   **Inventory Logic:** The button must be reactively disabled if the product’s `stock_quantity` is 0, utilizing the same logic as the `StatusChip`.
+
+### **Task Details**
+
+*   **Folder Structure:** No changes required; work is within `src/app/features/product/`.
+*   **Files to Modify:**
+    *   `product-list.component.ts`: Add `CartService` and `NotificationService` injection and the `onAddToCart` handler.
+    *   `product-list.component.html`: Update the `AppCard` template to include the action button.
+*   **Files to Create:** None.
 
 ---
 
 ### **Role 2: AI Coding Assistant Prompt (Implementation Engineer)**
-**Instructions:** Copy and paste the block below into your **AI Coding Assistant** chat to facilitate these functional validations.
 
-> **"Act as an Implementation Engineer.** We are executing **SIT Phases 3–7** for the Enterprise E-Commerce Platform. Our goal is to verify functional integration across the application.
+Copy and paste the following prompt into your **AI Coding Assistant** chat:
+
+> **"Act as an Implementation Engineer.** We are closing a functional gap in the **Product List** feature of our Enterprise E-Commerce Platform using **Angular 19**.
 >
-> **Task: Functional SIT Validation (Phases 3–7)**
+> **Task:** Add the 'Add to Cart' functionality to the `ProductListComponent` while adhering to our **Enterprise Design System**.
 >
-> **1. Authorization (Phase 3):**
-> * Create a temporary test utility or update `AuthService` to simulate an RBAC violation. 
-> * Verify that attempting to access `/api/v1/admin/orders` as a 'CUSTOMER' results in a 403 error and the UI remains stable.
+> **1. Component Logic (product-list.component.ts):**
+> * Inject the `CartService` and the `NotificationService`.
+> * Implement a method `onAddToCart(product: Product)`. 
+> * This method should call `this.cartService.addToCart(product)` and then display a success message using `this.notificationService.success('Added to cart')`.
 >
-> **2. Product & Cart Integration (Phases 4–5):**
-> * Verify the **Signal-based** Cart service correctly recalculates `grandTotal` when adding/removing products or changing quantities.
-> * Ensure the `LoadingSkeleton` displays correctly in the `ProductListComponent` until the `ProductService` returns data.
->
-> **3. Checkout & Orders Handshake (Phases 6–7):**
-> * Validate that the `CheckoutComponent` correctly maps the Cart items to the `POST /api/v1/orders` request payload.
-> * Ensure that upon successful checkout, the user is redirected to the **Order History** page and the new order is immediately visible.
+> **2. Template Update (product-list.component.html):**
+> * Within the existing `<app-card>` loop, add a Material button to the card's action area.
+> * The button should have a `shopping_cart` icon and the label 'Add to Cart'.
+> * **Business Rule:** Use a property binding to disable the button if `product.stock_quantity <= 0`.
 >
 > **Technical Requirements:**
-> * Maintain **OnPush Change Detection** and **Angular Signals**.
-> * Use the **Enterprise Design System** (AppCard, StatusChip) for all UI verification components.
-> * Do **NOT** modify the backend API logic.
+> * Strictly follow **OnPush Change Detection** and **Angular Signals**.
+> * Use established Material 3 styling and utility classes.
+> * Ensure all new code passes the project's existing linting rules.
 >
-> **Deliverables:**
-> * A summary of the functional verification results for these modules.
-> * Any necessary logic refinements in `CartService` or `OrderService` to ensure integration stability.
-> * A unit test for the `OrderService` verifying the retrieval of the order history list."
+> **Deliverables:** Provide the updated `product-list.component.ts` and `product-list.component.html`. Include a unit test for the `ProductListComponent` that spies on the `CartService` to verify the add action is called."
 
 ---
 
-### **Role 3: Next Action Items for You (Technical Lead / QA)**
-Following our framework, your role is now to oversee the execution of these integration tests:
+### **Role 3: Next Action Items for You (QA)**
 
-1.  **Run the Prompt:** Execute the instructions above with your AI coding assistant.
-2.  **Perform the End-to-End SIT (Phases 3-7):**
-    *   **RBAC Check:** Log in as a Customer and attempt to navigate to an Admin route; verify the **403 Forbidden** handling.
-    *   **Cart Check:** Add 3 items, update quantities, and verify the total matches your manual calculation.
-    *   **Checkout Check:** Complete a purchase and verify the inventory stock in the database is reduced by the exact amount purchased.
-3.  **Audit for Regressions:** Ensure that these integrations haven't broken the **Environment Check** or **Auth Flow** verified in the previous SIT milestone.
-4.  **Return to this Chat:** Provide the test results or any identified defects for my **Principal Architect Review**.
+1.  **Run the Prompt:** Execute the prompt with your AI coding assistant.
+2.  **Verify Locally:**
+    *   Confirm that clicking "Add to Cart" updates the cart count in the header toolbar.
+    *   Verify the **Snackbar** notification appears on success.
+    *   Check that products with **0 stock** have a disabled "Add to Cart" button.
+3.  **Return for Review:** Provide the code or the `git diff` here for my **Principal Architect Review** before we resume the **Sprint 4.4 SIT**.
 
-Once these business flows are verified, we will be ready to proceed to the **Internal Demo** and the final **RC1 Sign-off**. **How would you like to proceed with the testing?**
+Once this functional gap is closed, we will proceed to **Phase 3 (RBAC)** of the System Integration Testing.
