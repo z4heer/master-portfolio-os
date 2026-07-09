@@ -1,191 +1,56 @@
-# Sprint 4.4 Summary
+Following the **Proposed Execution Framework**, I have prepared the **Implementation Package** for **Sprint 4.4 — System Integration Testing (SIT) Phases 3 through 7**. 
 
-## For a Beginner Engineer
+With the environment and authentication foundations (Phases 1 & 2) now verified and passed, we move into the **Functional Integration** of the core business engine. This phase validates that your specialized modules—RBAC, Product Catalog, Cart, and Orders—operate as a unified enterprise system.
 
-**Goal**
-
-Make sure the frontend can safely communicate with the backend before the application is released.
-
-### What you are doing
-
-* Create a small service that calls the backend `/health` API.
-* Show a loading indicator while waiting.
-* Display whether:
-
-  * API is UP
-  * PostgreSQL is UP
-  * Redis is UP
-* Improve logout so all authentication data is removed.
-* Add simple development console logs to verify authentication.
-* Write a few unit tests to verify login protection.
-
-Think of it like a **pre-flight checklist** before an airplane takes off.
+### **Role 1: Architecture Review & Design Decisions**
+*   **Objective:** Validate end-to-end data integrity and security enforcement across the full user journey (Browse → Cart → Checkout → Order History).
+*   **Security (RBAC):** Verification that the **Authorization Interceptor** and **Route Guards** correctly return a 403 Forbidden status when a Customer attempts to access Admin resources.
+*   **State Integrity:** Ensure the **Angular Signals** managing the Cart and Order states stay synchronized with the backend during high-frequency updates (e.g., rapid quantity changes).
+*   **Data Validation:** Confirm the backend correctly handles atomic inventory deductions during the checkout transition to prevent overselling.
+*   **Performance:** Loading skeletons must be verified for all data-heavy views (Product List and Dashboard) to maintain perceived speed.
 
 ---
 
-## For a Mid-Level Engineer
+### **Role 2: AI Coding Assistant Prompt (Implementation Engineer)**
+**Instructions:** Copy and paste the block below into your **AI Coding Assistant** chat to facilitate these functional validations.
 
-**Sprint Objective**
-
-Implement System Integration Testing (SIT) validations between Angular 19 and the FastAPI backend without changing application architecture.
-
-### Scope
-
-* Validate infrastructure dependencies through the `/health` endpoint.
-* Keep UI reactive using Angular Signals.
-* Preserve `OnPush` change detection.
-* Integrate `LoadingSkeleton` during asynchronous validation.
-* Harden authentication cleanup by clearing all persisted credentials.
-* Add development-only security diagnostics.
-* Increase test coverage around authentication and route protection.
-
-### Out of Scope
-
-* No API changes.
-* No database schema changes.
-* No routing redesign.
-* No component refactoring.
-* No design system changes.
-
----
-
-# Continue Working (Next Implementation Phase)
-
-The remaining work should be completed in this order.
-
-## Step 1 — Environment Validation
-
-**Files**
-
-```text
-core/
- └── services/
-      environment.service.ts
-
-features/
- └── diagnostics/
-      environment-check.component.ts
-      environment-check.component.html
-      environment-check.component.spec.ts
-```
-
-Deliverables:
-
-* ✅ Typed `EnvironmentService`
-* ✅ Environment check component
-* ✅ Signals for loading, status, and error
-* ✅ LoadingSkeleton integration
-* ✅ Health status UI
+> **"Act as an Implementation Engineer.** We are executing **SIT Phases 3–7** for the Enterprise E-Commerce Platform. Our goal is to verify functional integration across the application.
+>
+> **Task: Functional SIT Validation (Phases 3–7)**
+>
+> **1. Authorization (Phase 3):**
+> * Create a temporary test utility or update `AuthService` to simulate an RBAC violation. 
+> * Verify that attempting to access `/api/v1/admin/orders` as a 'CUSTOMER' results in a 403 error and the UI remains stable.
+>
+> **2. Product & Cart Integration (Phases 4–5):**
+> * Verify the **Signal-based** Cart service correctly recalculates `grandTotal` when adding/removing products or changing quantities.
+> * Ensure the `LoadingSkeleton` displays correctly in the `ProductListComponent` until the `ProductService` returns data.
+>
+> **3. Checkout & Orders Handshake (Phases 6–7):**
+> * Validate that the `CheckoutComponent` correctly maps the Cart items to the `POST /api/v1/orders` request payload.
+> * Ensure that upon successful checkout, the user is redirected to the **Order History** page and the new order is immediately visible.
+>
+> **Technical Requirements:**
+> * Maintain **OnPush Change Detection** and **Angular Signals**.
+> * Use the **Enterprise Design System** (AppCard, StatusChip) for all UI verification components.
+> * Do **NOT** modify the backend API logic.
+>
+> **Deliverables:**
+> * A summary of the functional verification results for these modules.
+> * Any necessary logic refinements in `CartService` or `OrderService` to ensure integration stability.
+> * A unit test for the `OrderService` verifying the retrieval of the order history list."
 
 ---
 
-## Step 2 — Authentication Hardening
+### **Role 3: Next Action Items for You (Technical Lead / QA)**
+Following our framework, your role is now to oversee the execution of these integration tests:
 
-**Files**
+1.  **Run the Prompt:** Execute the instructions above with your AI coding assistant.
+2.  **Perform the End-to-End SIT (Phases 3-7):**
+    *   **RBAC Check:** Log in as a Customer and attempt to navigate to an Admin route; verify the **403 Forbidden** handling.
+    *   **Cart Check:** Add 3 items, update quantities, and verify the total matches your manual calculation.
+    *   **Checkout Check:** Complete a purchase and verify the inventory stock in the database is reduced by the exact amount purchased.
+3.  **Audit for Regressions:** Ensure that these integrations haven't broken the **Environment Check** or **Auth Flow** verified in the previous SIT milestone.
+4.  **Return to this Chat:** Provide the test results or any identified defects for my **Principal Architect Review**.
 
-```text
-core/
- ├── services/
- │     auth.service.ts
- │
- └── security/
-       security-audit.service.ts
-```
-
-Deliverables:
-
-* ✅ Refactor `logout()` to clear all tokens.
-* ✅ Reset Signal-based authentication state.
-* ✅ Add development-only security audit logging.
-
----
-
-## Step 3 — Router Integration
-
-**Files**
-
-```text
-app.component.ts
-```
-
-Deliverables:
-
-* ✅ Listen for navigation events.
-* ✅ Trigger the security audit on protected-route navigation.
-* ✅ Ensure logs are disabled in production.
-
----
-
-## Step 4 — AuthGuard Validation
-
-**Files**
-
-```text
-core/
- └── guards/
-      auth.guard.spec.ts
-```
-
-Deliverables:
-
-* ✅ Redirect to `/login` when tokens/auth state are missing.
-* ✅ Allow navigation for authenticated users.
-* ✅ Verify `UrlTree` redirection behavior.
-
----
-
-## Step 5 — Environment Service Tests
-
-**Files**
-
-```text
-environment.service.spec.ts
-environment-check.component.spec.ts
-```
-
-Deliverables:
-
-* ✅ `/health` endpoint is called.
-* ✅ Successful response updates Signals.
-* ✅ Error response displays failure state.
-* ✅ LoadingSkeleton visibility is verified.
-
----
-
-## Step 6 — Final SIT Verification
-
-Run the complete validation sequence:
-
-```bash
-npm test
-
-ng test --watch=false
-
-ng build
-
-npm run lint
-```
-
-Verify:
-
-* ✅ Backend health endpoint returns all services as `UP`.
-* ✅ LoadingSkeleton appears during environment checks.
-* ✅ Environment status renders correctly.
-* ✅ Logout clears all stored tokens.
-* ✅ Signal-based auth state resets.
-* ✅ Protected routes redirect unauthenticated users.
-* ✅ Security audit logs appear only in development mode.
-* ✅ Production build succeeds with no style or budget issues.
-
-## What I'll implement next
-
-We'll proceed with the remaining Sprint 4.4 deliverables in this sequence:
-
-1. Complete the `EnvironmentService` and `EnvironmentCheckComponent`.
-2. Refine `AuthService` logout and state reset.
-3. Add the development-only `SecurityAuditService`.
-4. Integrate router navigation auditing.
-5. Write the unit tests for the environment check and `AuthGuard`.
-6. Perform the final SIT validation checklist.
-
-This sequence keeps the work incremental, easy to review, and low risk for integration while maintaining Angular 19 enterprise standards.
+Once these business flows are verified, we will be ready to proceed to the **Internal Demo** and the final **RC1 Sign-off**. **How would you like to proceed with the testing?**
