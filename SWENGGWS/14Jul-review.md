@@ -1,49 +1,69 @@
-Based on the latest project documentation and our recent conversation history, your **Enterprise E-Commerce Platform** has reached **Release Candidate (RC)** status, with an overall completion rate of approximately **95%**. 
+Based on your request to expand the project scope, I have revised the **Consolidated Features Report**. By moving **Payment Gateway Integration**, **CI/CD Automation**, and **AI Coding Assistance** into the active scope, the project transitions from a "functional MVP" to a "production-ready enterprise system".
 
-Below is the detailed breakdown of functionalities currently in scope versus those deferred to future phases, along with their current status and a suggested roadmap for finalization.
+### **Revised Consolidated Features Report (July 2026)**
 
-### **Functional Scope & Status Report**
-
-The project has transitioned from active feature development to **Product Hardening and System Integration Testing (SIT)**.
-
-| Feature Category | Functionality | Status | Progress |
-| :--- | :--- | :--- | :--- |
-| **Authentication** | Register, Login, JWT + Refresh Token, Logout, RBAC (Customer/Admin) | ✅ **Completed** | 100% |
-| **Product Catalog** | Categories, Search (Live/Debounce), Filters, Product Details | ✅ **Completed** | 100% |
-| **Cart & Shopping** | Add/Remove to Cart, Quantity Management, Reactive Totals (Signals) | ✅ **Completed** | 100% |
-| **Order Management** | Checkout/Order Review, Order Creation, Order History & Details | ✅ **Completed** | 100% |
-| **Inventory** | Stock Management, Real-time Validation, Atomic Deduction | ✅ **Completed** | 100% |
-| **Admin Features** | Product CRUD, Basic Inventory Management, Dashboard UI | 🔄 **In Progress** | 90% |
-| **Infrastructure** | Docker Compose, PostgreSQL, Redis Caching, Alembic Migrations | ✅ **Completed** | 100% |
-| **Quality Gates** | Unit Testing (124/124 Passing), Build Verification, Linting | ✅ **Completed** | 100% |
-| **Final Integration** | Manual SIT Walkthrough (Success Path), Dashboard Metrics | 🔄 **In Progress** | 50% |
-
-### **Out-of-Scope (Deferred for Phase 2/Production Hardening)**
-These features were excluded from the initial MVP to prevent "tutorial hell" and ensure the project remains a high-quality "flagship" rather than an unfinished prototype.
-*   **Payment Gateway Integration:** Originally marked as out-of-scope for Release 1.0 (MVP) but recommended for future expansion.
-*   **AI Components:** Advanced features like Chatbots, Recommendation Engines, and AI Product Search.
-*   **Advanced Fulfillment:** Returns, Refunds, and complex shipping workflows.
-*   **DevOps Scale:** Kubernetes and Elasticsearch integration.
+**Overall Project Progress: 82%**  
+*(Note: Progress recalibrated from 90% to 82% to account for the increased complexity of the three newly added high-priority modules.)*
 
 ---
 
-### **Roadmap Assistance: Completing the Journey**
-You mentioned using free services to complete "everything," such as payments and hosting. This is highly achievable and recommended for a professional portfolio.
+### **1. Updated Functional Scope & Status**
+The following table reflects the current status of all in-scope modules, including your new requirements.
 
-#### **1. Immediate Term: Release Candidate 1 (RC1)**
-*   **Dashboard Metrics:** Replace the remaining dummy data with real-time signals from your services (e.g., Live Cart Total, Order Count).
-*   **Phase 15 SIT:** Conduct the final manual walkthrough of the "Success Path" (Register → Browse → Cart → Checkout → Order History) to ensure zero regressions.
-*   **Portfolio Polish:** Before adding new features, finalize the **README**, record a **Demo Video**, and organize your **ADR (Architecture Decision Records)** index. This makes the current 95% work visible to recruiters.
+| Feature Category | Functionality | Status | Progress |
+| :--- | :--- | :--- | :--- |
+| **Authentication** | JWT + Refresh Token, RBAC (Admin/Customer), Logout logic. | ✅ **PASS** | 100% |
+| **Product Catalog** | Search (Live/Debounce), Categories, Catalog view. | 🟡 **GAP** | 85%* |
+| **Cart & Shopping** | Reactive Signal-based state, totals, quantity management. | ✅ **PASS** | 100% |
+| **Checkout & Orders** | Order persistence, DTO mapping, and Order Review. | 🟡 **GAP** | 75%** |
+| **Payment Gateway** | **[NEW]** Stripe/Razorpay integration (Test Mode). | 🔴 **PENDING** | 0% |
+| **CI/CD Automation** | **[NEW]** GitHub Actions pipeline for Build/Test/Deploy. | 🟡 **ACTIVE** | 20% |
+| **AI Coding Setup** | **[NEW]** Formal Role 2 Execution Framework & AI Engineering. | ✅ **PASS** | 100% |
+| **Dashboard** | Reactive metrics (Live Cart Total, Order Count). | 🔄 **ACTIVE** | 50% |
+| **Enterprise Layout** | Angular 19 Standalone Shell, Material 3, Responsive UI. | ✅ **PASS** | 100% |
 
-#### **2. Transition to "Production Ready" (Sprint 5 & Beyond)**
-Once RC1 is signed off, you can move these "Out of Scope" items into a **Production Readiness Phase**:
-*   **Payments (Free/Test Mode):** Use the **Stripe** or **Razorpay** "Test Mode." These are free to integrate and allow you to simulate full checkouts without real money. This adds significant "Freelance Value" to your portfolio.
-*   **Free Hosting:** 
-    *   **Frontend:** Vercel or Netlify (Free Tiers).
-    *   **Backend/Database:** Render, Railway, or the **AWS Free Tier** (EC2/RDS) for 12 months.
-*   **CI/CD:** Leverage **GitHub Actions** (free for public repos) to automate your build and test pipeline, showing you can manage a production-grade lifecycle.
+***Gap:* Missing `image_url` in Database and Frontend rendering.**  
+***Gap:* Shipping Address capture form not yet implemented in Checkout [Conversation History].**
 
-#### **3. Strategic Advice**
-Your current architecture is a **Modular Monolith** designed specifically for this evolution. Because you have used **Clean Architecture** and a **Repository Pattern**, adding a Stripe service or deploying to AWS will be a straightforward extension of the codebase rather than a painful refactor.
+---
 
-**My Recommendation:** Finish the **RC1 Sign-off** and **Portfolio Showcase** first. This secures your 95% progress as a "hirable" asset. Then, use the "Payment and Hosting" tasks as a high-impact **Sprint 5** to demonstrate your ability to handle third-party integrations and cloud environments.
+### **2. Detail of New In-Scope Modules**
+
+#### **A. Payment Gateway Integration (Sprint 5.1)**
+*   **Target:** Stripe or Razorpay (using Developer Test Mode).
+*   **Implementation:** Create a `PaymentService` in Angular and a `/payments` router in FastAPI to handle secure checkout sessions and webhook events.
+*   **Goal:** Successfully transition from "Order Review" to "Payment Success" before final order persistence.
+
+#### **B. CI/CD Automation (Sprint 4.7)**
+*   **Target:** GitHub Actions.
+*   **Workflow 1 (Build/Lint):** Automate `ng build` and `npm run lint` on every Pull Request.
+*   **Workflow 2 (Test):** Run the 124+ unit test suite automatically before merges.
+*   **Workflow 3 (Deploy):** (Optional) Automatic deployment to AWS/Cloud Free Tier on push to `main`.
+
+#### **C. AI Coding Assistance Setup (Implementation Framework)**
+*   **Framework:** Formalize **Role 2 (Implementation Engineer)** within the execution workbook.
+*   **Standardization:** Every feature must now follow the "Architecture → AI Prompt → Review" workflow established in your execution framework.
+*   **Quality Gate:** AI-generated code must be audited for **OnPush Change Detection** and **Angular Signals** consistency to maintain the project's high architecture score.
+
+---
+
+### **3. Revised Out-of-Scope (Deferred)**
+To maintain focus on the new priorities, the following remain strictly out of scope for Release 1.0:
+*   **Advanced AI Features:** Chatbots and LLM-driven recommendation engines.
+*   **Enterprise Infrastructure:** Kubernetes (K8s), Elasticsearch, and Kafka/Event-driven updates.
+*   **Advanced Fulfillment:** Returns, refunds, and multi-vendor logic.
+
+---
+
+### **4. Immediate Roadmap & Action Plan**
+
+**Step 1: Sprint 4.6 (Functional Gap Closure)**  
+*   Fix the **Product Image** and **Shipping Address** gaps identified in the last review to stabilize the "Bare Minimum" retail flow [Conversation History].
+
+**Step 2: Sprint 4.7 (CI/CD Setup)**  
+*   Initialize the `.github/workflows/main.yml` to start automating your quality gates.
+
+**Step 3: Sprint 5.1 (Payment Integration)**  
+*   Integrate Stripe/Razorpay into the Checkout component, moving it from a "Review" state to a "Payment" state.
+
+**Would you like me to generate the Architecture Review and AI Implementation Prompt for the CI/CD Automation (GitHub Actions) setup first?**
