@@ -1,3 +1,60 @@
+##
+Your `ecommerce-backend` container is caught in a crash loop (constantly restarting). Because it is failing to stay alive, Docker cannot execute commands inside it.
+
+The container is likely crashing for the exact same reason your local script failed earlier: it is trying to connect to the database or find dependencies and failing on startup.
+
+Let's debug and fix this step-by-step.
+
+### Step 1: Check the container logs
+
+Run this command to see why the backend is crashing:
+
+```bash
+docker logs ecommerce-backend
+
+```
+
+*Look at the last few lines. If you see a `ModuleNotFoundError` or a database connection timeout, that will tell us exactly what configuration needs to change.*
+
+### Step 2: Force a rebuild (If you added new files)
+
+If you recently added migration files or changed dependencies on your host machine, you need to tell Docker to rebuild the image instead of just restarting the broken container:
+
+```bash
+docker compose up -d --build backend
+
+```
+
+### Step 3: Run migrations via a one-off container
+
+If the main backend container keeps crashing because it waits for database migrations to complete before starting, you can bypass the crash loop. Run a "one-off" container that overrides the default startup command just to execute Alembic:
+
+```bash
+docker compose run --rm backend alembic upgrade head
+
+```
+
+*(Note: If your service in `docker-compose.yml` is named something other than `backend`, replace `backend` with your actual service name).*
+
+---
+
+### If it still complains about the missing revision...
+
+If the container builds fine but still throws the `Can't locate revision identified by 'd8a6f0b93c41'` error:
+
+1. Check if the file `alembic/versions/d8a6f0b93c41_add_catalog_master_data_support.py` actually exists inside your host's backend folder.
+
+
+2. If it does, ensure your `docker-compose.yml` has a volume map mounting your local directory, like:
+```yaml
+volumes:
+  - .:/app
+
+```
+
+
+Without this volume mapping, the running container won't see any files you create on your host machine until you completely rebuild the image.
+##
 (venv) root@zahsay:~/projects/ecommerce-platform/backend# python -m alembic upgrade head
 Traceback (most recent call last):
   File "/root/projects/ecommerce-platform/backend/venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 144, in __init__
