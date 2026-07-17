@@ -1,9 +1,3 @@
-Excellent idea. For an enterprise developer, the "happy path" cheat sheet is only about **30%** of the work. The remaining **70%** is spent diagnosing failures, fixing bugs, validating deployments, and performing root-cause analysis.
-
-Below is a second cheat sheet that focuses on real-world engineering scenarios.
-
----
-
 # Enterprise E-Commerce Platform
 
 # DevOps, Debugging & Troubleshooting Cheat Sheet
