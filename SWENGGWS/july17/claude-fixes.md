@@ -1,3 +1,23 @@
+## iter 2
+Thanks — this confirms the conftest is minimal (just `sys.path` bootstrapping, no fixtures, no DB setup, no shared mocks). Located at `backend/tests/conftest.py`, with `PROJECT_ROOT = parent.parent` resolving to `backend/`.
+
+This means:
+
+- **No changes needed** to the test file I wrote — it's self-contained with `unittest.mock.MagicMock`, which is compatible with this setup. It doesn't rely on any fixture that doesn't exist.
+- **Path check**: my test lives at `backend/tests/unit/orders/test_order_service_price_snapshot.py`. For imports like `from app.modules.orders.models.order import Order` to resolve, `backend/` needs to be on `sys.path` — which this `conftest.py` already guarantees, and pytest auto-discovers `conftest.py` files upward from the test path. So placement is correct as-is.
+- One thing to verify on your end: make sure `backend/tests/__init__.py`, `backend/tests/unit/__init__.py`, and `backend/tests/unit/orders/__init__.py` exist (or that you're running pytest with rootdir-based discovery, not package-based) — since `tests/` was previously untracked/empty, these `__init__.py` files may not exist yet. If your pytest config uses `rootdir` + `testpaths` discovery (no `__init__.py` required), you're fine either way.
+
+Quick check before you run it:
+
+```bash
+cd backend
+find tests -name "__init__.py"
+cat pytest.ini setup.cfg pyproject.toml 2>/dev/null | grep -A5 "\[tool.pytest" 
+```
+
+If there's no `[tool.pytest.ini_options]` or `pytest.ini` at all, pytest will use rootdir auto-detection (fine, no `__init__.py` needed). If you want, paste me that config output and I'll confirm the test will actually be discovered.
+
+Otherwise — backend Task 2 stands as written. Whenever you're ready, send `product_request.py` / `product_response.py` and `product_repository.py` so I can close out backend Task 1, and then we'll move to frontend per your sequencing.
 ## Design & Dependencies
 
 **Files modified:**
