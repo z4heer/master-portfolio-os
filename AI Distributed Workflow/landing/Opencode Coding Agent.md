@@ -1,3 +1,527 @@
+## Executive Summary
+
+The main idea is simple:
+
+- **Ollama** runs the LLM locally.
+- **OpenCode** acts as the coding agent and terminal interface.
+- **VS Code** remains your IDE.
+- **Git** tracks changes.
+- **Playwright** performs browser testing.
+- Everything runs on your own machine without paying for Claude Code subscriptions or API tokens.
+
+This gives you:
+
+- No per-token cost
+- Better privacy
+- Offline development
+- Full control over models
+- Faster experimentation
+
+The tradeoff is that local models are generally weaker than Claude Opus or GPT-5.5 on very complex reasoning tasks.
+
+---
+
+# Why OpenCode instead of Claude Code?
+
+Claude Code was primarily designed around Anthropic models.
+
+When local models are plugged into it:
+
+- system prompts become very large
+- excessive tool calls occur
+- context is consumed quickly
+- responses become slower
+- weaker models struggle
+
+OpenCode was designed to be lightweight.
+
+Advantages include:
+
+- fewer unnecessary prompts
+- smaller context usage
+- faster execution
+- better compatibility with Ollama
+- easier configuration
+
+---
+
+# Recommended Architecture
+
+```
+VS Code
+
+      │
+
+OpenCode CLI
+
+      │
+
+ Ollama Server
+
+      │
+
+Local Model
+
+      │
+
+Project Folder
+
+      │
+
+Git
+```
+
+Optional additions:
+
+```
+Playwright
+
+Docker
+
+PostgreSQL
+
+Redis
+
+FastAPI
+
+Angular
+
+OpenRouter (fallback)
+
+GitHub
+```
+
+This creates a complete local development environment.
+
+---
+
+# Installation
+
+## Step 1
+
+Install Node.js LTS
+
+Verify
+
+```
+node -v
+
+npm -v
+```
+
+---
+
+## Step 2
+
+Install Ollama
+
+```
+ollama serve
+```
+
+Verify
+
+```
+ollama list
+```
+
+---
+
+## Step 3
+
+Install OpenCode
+
+```
+npm install -g opencode-ai
+```
+
+or
+
+```
+npx opencode
+```
+
+depending on the current release.
+
+---
+
+## Step 4
+
+Pull a coding model
+
+Example
+
+```
+ollama pull qwen2.5-coder
+```
+
+or
+
+```
+ollama pull gemma3
+```
+
+---
+
+## Step 5
+
+Configure provider
+
+Example
+
+```
+Provider:
+Ollama
+
+Endpoint:
+http://localhost:11434
+
+Model:
+qwen2.5-coder
+```
+
+---
+
+# Model Selection Guide
+
+### Small laptops
+
+8 GB RAM
+
+Use
+
+- Gemma 3 4B
+- Qwen 2.5 Coder 3B
+
+---
+
+### 16 GB RAM
+
+Good balance
+
+Use
+
+- Gemma 3 12B
+- Qwen 2.5 Coder 7B
+- DeepSeek Coder Lite
+
+---
+
+### 24 GB+
+
+Use
+
+- Qwen 2.5 Coder 14B
+- Qwen 2.5 Coder 32B
+- larger DeepSeek models
+
+---
+
+# Planning Workflow
+
+One of the best lessons from the video is to **plan first**.
+
+Instead of:
+
+```
+Build entire ecommerce application.
+```
+
+Break it into:
+
+```
+Authentication
+
+Products
+
+Orders
+
+Payments
+
+Admin
+
+Reports
+```
+
+Then break again
+
+```
+Authentication
+
+Create Login API
+
+JWT
+
+Refresh Token
+
+Role Middleware
+
+Frontend Login
+
+Testing
+
+Documentation
+```
+
+Small tasks dramatically improve local model performance.
+
+---
+
+# Recommended Folder Structure
+
+```
+project/
+
+docs/
+
+tasks/
+
+001-login.md
+
+002-orders.md
+
+003-cart.md
+
+004-payment.md
+
+notes/
+
+architecture/
+
+prompts/
+```
+
+Each task becomes one conversation.
+
+---
+
+# Prompt Pattern
+
+Instead of
+
+> Build authentication.
+
+Use
+
+```
+Goal
+
+Implement JWT authentication.
+
+Requirements
+
+FastAPI
+
+PostgreSQL
+
+Refresh Tokens
+
+Password hashing
+
+Output
+
+Only backend code.
+
+Constraints
+
+Do not modify frontend.
+```
+
+This greatly improves results.
+
+---
+
+# Debugging Workflow
+
+1. Generate code
+
+↓
+
+2. Run application
+
+↓
+
+3. Read logs
+
+↓
+
+4. Fix errors
+
+↓
+
+5. Run tests
+
+↓
+
+6. Browser testing
+
+↓
+
+7. Commit
+
+Local agents perform much better with this iterative loop than with huge one-shot requests.
+
+---
+
+# Playwright Integration
+
+Use Playwright to:
+
+- open browser
+- click buttons
+- fill forms
+- verify pages
+- capture screenshots
+- detect JavaScript errors
+
+Typical cycle:
+
+```
+Generate feature
+
+↓
+
+Run app
+
+↓
+
+Playwright tests
+
+↓
+
+Fix
+
+↓
+
+Repeat
+```
+
+---
+
+# Git Workflow
+
+For every completed task:
+
+```
+git status
+
+git add .
+
+git commit
+```
+
+Small commits help the AI understand changes and make rollbacks easier.
+
+---
+
+# Best Practices
+
+Keep prompts:
+
+- focused
+- under one feature
+- with clear outputs
+- with constraints
+- avoid multiple unrelated requests
+
+---
+
+# Context Management
+
+Do not ask:
+
+```
+Build an ecommerce website.
+```
+
+Instead:
+
+Session 1
+
+```
+Authentication
+```
+
+Session 2
+
+```
+Products
+```
+
+Session 3
+
+```
+Cart
+```
+
+Session 4
+
+```
+Orders
+```
+
+This keeps context manageable.
+
+---
+
+# Strengths
+
+OpenCode + Ollama excels at:
+
+- refactoring
+- code generation
+- API creation
+- documentation
+- debugging
+- Docker files
+- SQL
+- Git
+- unit tests
+- code review
+
+---
+
+# Limitations
+
+Local models may struggle with:
+
+- very large repositories
+- deep architectural reasoning
+- long multi-file refactors
+- advanced UI design
+- novel algorithms
+
+For those tasks, a cloud model (via OpenRouter or another provider) can be used selectively.
+
+---
+
+# Recommended Hybrid Setup
+
+Given your environment (16 GB RAM, FastAPI, Angular, Docker, PostgreSQL, Redis, GitHub), a balanced setup is:
+
+**Offline (daily development):**
+
+- Ollama
+- Qwen 2.5 Coder 7B
+- Gemma 3 12B
+- OpenCode
+- VS Code
+- Playwright
+- Docker
+
+**Online (only when needed):**
+
+- OpenRouter
+- GPT-5.5
+- Claude Opus/Sonnet
+- Gemini 2.5 Pro
+
+This minimizes costs while still providing access to stronger models for complex architectural work.
+
+Overall, the workflow shown in the video aligns well with modern AI-assisted software development: keep tasks small, plan before coding, validate continuously with tests, and use local models for routine work while reserving cloud models for the most demanding reasoning tasks.
+
+##
+
 This is a solid approach. Based on everything we've discussed about your development environment (WSL Ubuntu, VS Code, Docker on D: drive, limited C: space, free-first tooling, enterprise portfolio project), I would make a few adjustments.
 
 # Recommended Architecture
