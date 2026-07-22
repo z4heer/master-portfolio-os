@@ -1,570 +1,459 @@
-Agreed. I'll stay within your instruction:
+Excellent. Based on the current baseline, I would **freeze feature development** and move entirely into **Engineering Stabilization (RC1 Readiness)**. At 92–93% complete, every hour spent on stabilization provides more value than adding functionality.
 
-* ✅ No new features
-* ✅ No architecture changes
-* ✅ No repository redesign
-* ✅ No pagination/filtering additions
-* ✅ No API changes
-* ✅ Production-quality fixes only
-* ✅ Keep backward compatibility
+# Current RC1 Status
 
-Based on the uploaded code, **only one implementation commit is required** before moving to Enterprise SIT.
-
----
-
-# Commit 1 — Order Service Stabilization
-
-## 1. Replace `create_order()`
-
-The current implementation contains merged logic and an incorrect loop. Replace the method with the implementation below.
-
-```python
-def create_order(
-    self,
-    user_id: UUID,
-    request: CreateOrderRequest,
-) -> Order:
-    try:
-        logger.info(
-            "Starting order creation for user %s",
-            user_id,
-        )
-
-        # Validate inventory (row locking happens inside InventoryService)
-        self.inventory_service.validate_and_deduct_stock(request.items)
-
-        new_order = Order(
-            order_number=self.generate_order_number(),
-            user_id=user_id,
-            status=OrderStatus.PENDING,
-            shipping_address=request.shipping_address,
-            payment_method=PaymentMethod.COD,
-            payment_status=PaymentStatus.PENDING,
-            currency=Currency.INR,
-            total_amount=Decimal("0.00"),
-        )
-
-        total_amount = Decimal("0.00")
-
-        for item in request.items:
-
-            product = self.product_repo.get_by_id(
-                self.db,
-                item.product_id,
-            )
-
-            if product is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid product.",
-                )
-
-            subtotal = Decimal(product.price) * item.quantity
-
-            order_item = OrderItem(
-                product_id=product.id,
-                quantity=item.quantity,
-                unit_price=product.price,
-                subtotal=subtotal,
-                product_name=product.name,
-                product_sku=product.sku or "",
-            )
-
-            new_order.items.append(order_item)
-            total_amount += subtotal
-
-        new_order.total_amount = total_amount
-
-        saved_order = self.order_repo.create_order(new_order)
-
-        self.db.commit()
-        self.db.refresh(saved_order)
-
-        return saved_order
-
-    except HTTPException:
-        self.db.rollback()
-        raise
-
-    except Exception as ex:
-        self.db.rollback()
-
-        logger.exception("Order creation failed")
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Transaction Failed: {str(ex)}",
-        )
-```
-
-### This fixes
-
-* ✔ multiple products
-* ✔ snapshot fields
-* ✔ subtotal
-* ✔ total calculation
-* ✔ rollback
-* ✔ refresh after commit
-* ✔ duplicate implementation removal
-* ✔ production transaction flow
+| Area           | Status                      |
+| -------------- | --------------------------- |
+| Architecture   | ✅ Frozen                    |
+| Backend APIs   | ✅ Stable                    |
+| Product Module | ✅ Complete                  |
+| Order Module   | ✅ Complete                  |
+| Authentication | ✅ Complete                  |
+| Postman SIT    | ✅ Passed                    |
+| Database       | ✅ Bootstrap + Seed Complete |
+| Angular Build  | ✅ PASS                      |
+| Remaining Work | Validation & Hardening      |
 
 ---
 
-# 2. Remove dead code
+# Priority 1 — Stabilize Validation Suite
 
-Delete:
-
-```python
-order_items_entities = []
-```
-
-Delete:
-
-```python
-total_amount = 0.0
-```
-
-Delete the old `append(OrderItem(...))` implementation that builds `order_items_entities` but never uses it.
-
-These belong to the abandoned implementation and should be removed. 
+These are the last engineering blockers before RC1.
 
 ---
 
-# 3. No changes required
+# Task 1 — Fix SQLAlchemy Mapper Registration Failures (Highest Priority)
 
-Leave these files unchanged:
+From your description:
 
-* ✅ `order_router.py`
-* ✅ `admin_order_router.py`
-* ✅ `inventory_service.py`
-* ✅ `inventory_transaction_repository.py`
-* ✅ `order_request.py`
-* ✅ `order_item.py`
+> relationship("User") resolution fails during isolated pytest execution.
 
-They already align with the current sprint scope.   
+This is almost always caused by one of these:
 
----
-
-# 4. Minimal DTO updates
-
-Update only the response schemas so they match the existing database model (no new APIs or behavior).
-
-Add to `OrderItemResponse`:
-
-```python
-product_name: str
-product_sku: str
-subtotal: float
-```
-
-Add to `OrderResponse`:
-
-```python
-order_number: str
-payment_method: str
-payment_status: str
-payment_reference: str | None
-payment_date: datetime | None
-currency: str
-```
-
-Mirror the same fields in `OrderDetailResponse`, keeping the existing structure. This brings the response contract in line with the fields already present in the `Order` and `OrderItem` models. 
+* model import order
+* registry not initialized
+* circular imports
+* isolated test importing only one model
+* relationship string resolution before User model is registered
 
 ---
 
-## Validation
+## Step 1
 
-After applying the changes, run:
+Review every model.
 
-```bash
-python -m compileall app
-ruff check .
-black --check .
-pytest
-```
-
-Then execute your existing Postman flow:
-
-1. Login
-2. Create Product
-3. Create Order (multiple items)
-4. Get Order History
-5. Get Order Details
-6. Update Order Status (Admin)
-7. Get All Orders (Admin)
-
-This completes the Orders stabilization work without expanding scope or introducing new improvements, keeping us aligned with your Sprint 4.6A objective.
-##
----
-I reviewed all uploaded Order module files. This is a solid foundation overall, but I found several gaps that should be addressed before we proceed with the Enterprise SIT. Some are contract issues, while a few are correctness bugs that could lead to incorrect order creation or inconsistent data.
-
----
-
-# Assessment
-
-| Module                           | Status             | Notes                            |
-| -------------------------------- | ------------------ | -------------------------------- |
-| order_router                     | ✅ Good             | Minor improvements               |
-| admin_order_router               | ✅ Good             | Minor improvements               |
-| order_request                    | ✅ Good             | Production-ready                 |
-| order_response                   | ⚠ Needs update     | DTOs incomplete                  |
-| order_repository                 | ⚠ Needs update     | Missing eager loading/pagination |
-| inventory_service                | ✅ Good             | Good transaction boundary        |
-| inventory_transaction_repository | ✅ Good             | Proper row locking               |
-| order model                      | ⚠ Needs cleanup    | Duplicate field declarations     |
-| order_item model                 | ✅ Good             | Good                             |
-| order_service                    | ❌ Highest Priority | Contains logic bug               |
-
----
-
-# Priority 1 — `order_service.py`
-
-This is the only file I would classify as **blocking**.
-
-## 1. Mixed implementations
-
-Your service currently contains **two different implementations** of `create_order()` merged together.
-
-For example:
-
-```python
-order_items_entities = []
-```
-
-followed later by
-
-```python
-subtotal = Decimal(product.price) * item.quantity
-
-order_item = OrderItem(...)
-new_order.items.append(order_item)
-```
-
-These are two different approaches merged into one implementation. 
-
----
-
-## 2. Serious logic bug
-
-After this loop
-
-```python
-for item in request.items:
-```
-
-you later use
-
-```python
-subtotal = Decimal(product.price) * item.quantity
-```
-
-outside the loop.
-
-That means only the **last** product survives.
-
-If multiple products are ordered:
-
-* first items ignored
-* only last item appended
-* total incorrect
-* order incomplete
-
-This is a production bug. 
-
----
-
-## 3. Unused collection
-
-You build
-
-```python
-order_items_entities
-```
-
-but never use it.
-
-Dead code.
-
----
-
-## 4. Missing refresh
-
-After
-
-```python
-self.db.commit()
-```
-
-repository returns entity but never refreshes.
-
-Preferred:
-
-```python
-self.db.commit()
-self.db.refresh(saved_order)
-return saved_order
-```
-
-This aligns with the Product module pattern.
-
----
-
-## 5. Decimal consistency
-
-Current code mixes
-
-```python
-float
-Decimal
-Numeric
-```
-
-inside one transaction.
-
-Prefer:
-
-```python
-Decimal
-```
-
-throughout.
-
----
-
-# Priority 2 — `order_response.py`
-
-Current DTOs expose only
-
-```
-id
-status
-shipping_address
-created_at
-total_amount
-```
-
-Enterprise API contract requires much more.
-
-Currently missing:
-
-* order_number
-* payment_method
-* payment_status
-* payment_reference
-* payment_date
-* currency
-* updated_at
-
-Item DTO missing
-
-* subtotal
-* product_name
-* product_sku
-
-Current DTOs therefore don't match your database model. 
-
----
-
-## Also migrate to Pydantic v2
-
-Instead of
-
-```python
-class Config:
-    from_attributes=True
-```
-
-use
-
-```python
-model_config = ConfigDict(
-    from_attributes=True
-)
-```
-
-to stay consistent with the rest of the project.
-
----
-
-# Priority 3 — Repository
-
-Repository is clean but minimal.
-
-Missing enterprise features.
-
-Current:
-
-```python
-select(Order)
-```
-
-Better:
-
-```python
-select(Order)
-.options(
-    selectinload(Order.items)
-)
-```
-
-Otherwise OrderDetail triggers lazy loading.
-
-Current implementation lacks eager loading. 
-
----
-
-Missing:
-
-* pagination
-* sorting
-* filters
-
-Not blocking today but required before RC.
-
----
-
-# Priority 4 — Order Model
-
-This file contains duplicated declarations.
+Instead of scattered imports, ensure models are loaded centrally.
 
 Example:
 
-```
-user_id
-```
+```python
+app/models/__init__.py
 
-appears twice.
-
-```
-status
-```
-
-appears twice.
-
-```
-created_at
+from .user import User
+from .product import Product
+from .order import Order
+from .order_item import OrderItem
+from .refresh_token import RefreshToken
 ```
 
-appears twice.
+Tests should import
 
+```python
+import app.models
 ```
-total_amount
-```
 
-appears twice.
-
-This is likely from merge conflicts during Sprint 4.6A and should be cleaned up to keep a single canonical mapping. 
+before metadata creation.
 
 ---
 
-# Priority 5 — Router
+## Step 2
 
-Router is already aligned with enterprise standards.
+Avoid partial imports like
+
+```python
+from app.models.order import Order
+```
+
+inside tests.
+
+Instead
+
+```python
+import app.models
+
+from app.models.order import Order
+```
+
+This ensures registry population.
+
+---
+
+## Step 3
+
+Check every relationship.
 
 Good:
 
-* HTTP 201
-* response_model
-* thin router
-* DI
-* service delegation
-
-No architectural issues found. 
-
----
-
-# Priority 6 — Admin Router
-
-Looks good.
-
-Minor recommendation:
-
-Explicitly add
-
 ```python
-status_code=status.HTTP_200_OK
+user = relationship(
+    "User",
+    back_populates="orders"
+)
 ```
 
-to the GET and PATCH routes for consistency with the Product module. 
+Bad:
+
+```python
+relationship(User)
+```
+
+when imports become circular.
 
 ---
 
-# Inventory Service
+## Step 4
 
-Very good.
+If tests create metadata
 
-This follows proper transaction boundaries:
+```python
+Base.metadata.create_all(bind=engine)
+```
 
-* validate
-* row lock
-* mutate
-* no commit
+ensure
 
-Exactly what we want. 
+```python
+import app.models
+```
 
----
+happens first.
 
-# Order Item Model
+Otherwise SQLAlchemy cannot resolve
 
-Looks good.
-
-Includes:
-
-* snapshot fields
-* subtotal
-* sku
-* relationships
-
-No changes needed. 
+```
+relationship("User")
+```
 
 ---
 
-# Enterprise SIT Readiness
+## Step 5
 
-| Area              | Status                  |
-| ----------------- | ----------------------- |
-| Authentication    | ✅                       |
-| Product APIs      | ✅                       |
-| Order Router      | ✅                       |
-| Order Service     | ❌ Fix required          |
-| DTO Contract      | ❌ Expand                |
-| Repository        | ⚠ Improve eager loading |
-| Models            | ⚠ Remove duplicates     |
-| Admin APIs        | ✅                       |
-| Inventory Locking | ✅                       |
+If using pytest fixtures
+
+verify fixture ordering.
+
+Good:
+
+```python
+@pytest.fixture(scope="session")
+def engine():
+    import app.models
+
+    engine = create_engine(TEST_DATABASE_URL)
+
+    Base.metadata.create_all(engine)
+
+    yield engine
+
+    Base.metadata.drop_all(engine)
+```
 
 ---
 
-# Recommended Implementation Order
+# Task 2 — Verify Alembic
 
-I recommend we implement in this sequence to minimize risk:
+Run inside Docker only.
 
-### Commit 1 — Order Service Stabilization (**highest priority**)
+```
+docker compose exec backend alembic current
 
-* Remove duplicate implementation
-* Fix multi-item order creation bug
-* Standardize `Decimal`
-* Add `db.refresh()`
-* Keep transaction atomic
+docker compose exec backend alembic history
 
-### Commit 2 — DTO Stabilization
+docker compose exec backend alembic heads
+```
 
-* Expand `OrderResponse`
-* Expand `OrderDetailResponse`
-* Expand `OrderItemResponse`
-* Migrate to `ConfigDict(from_attributes=True)`
+Expected
 
-### Commit 3 — Repository Stabilization
+```
+Current == Head
+```
 
-* Add `selectinload(Order.items)`
-* Add optional pagination
-* Add sorting hooks
-* Add filtering hooks
+Then
 
-### Commit 4 — Model Cleanup
+```
+docker compose exec backend alembic upgrade head
+```
 
-* Remove duplicate mapped columns
-* Keep a single canonical SQLAlchemy mapping
-* Verify Alembic compatibility
+Should report
 
-Once these four commits are complete, the Orders module should be ready for comprehensive Enterprise Postman SIT and then Angular integration.
+```
+No migrations to apply
+```
+
+Then
+
+```
+docker compose exec backend alembic downgrade -1
+docker compose exec backend alembic upgrade head
+```
+
+to verify reversibility.
+
+---
+
+# Task 3 — Pytest Stabilization
+
+Run
+
+```
+pytest -vv
+```
+
+then
+
+```
+pytest --maxfail=1
+```
+
+Fix failures one by one.
+
+Priority
+
+1. mapper errors
+
+2. fixture failures
+
+3. validation failures
+
+4. response schema
+
+5. repository tests
+
+---
+
+# Task 4 — Ruff
+
+```
+ruff check .
+```
+
+Fix
+
+* unused imports
+* unused variables
+* import ordering
+* duplicate imports
+
+Avoid blanket ignores unless justified.
+
+---
+
+# Task 5 — Black
+
+```
+black --check .
+```
+
+If formatting differs:
+
+```
+black .
+```
+
+---
+
+# Task 6 — MyPy
+
+Run
+
+```
+mypy app
+```
+
+Typical fixes:
+
+```
+Optional[...]
+
+Missing return
+
+dict[str, Any]
+
+cast()
+
+Protocol typing
+```
+
+Avoid
+
+```
+# type: ignore
+```
+
+unless absolutely necessary.
+
+---
+
+# Task 7 — Angular Lint
+
+Run
+
+```
+ng lint
+```
+
+Expected issues
+
+### Remove
+
+```
+unused imports
+```
+
+### Replace
+
+```
+any
+```
+
+with
+
+```
+Product
+
+Order
+
+OrderItem
+
+User
+
+Observable<Product>
+
+Signal<Order[]>
+```
+
+### Remove
+
+```
+console.log()
+```
+
+except where explicitly allowed.
+
+### Verify
+
+```
+OnPush
+```
+
+still satisfied.
+
+---
+
+# Task 8 — Full Validation Pipeline
+
+Run in this order.
+
+```
+python -m compileall app
+
+ruff check .
+
+black --check .
+
+mypy app
+
+pytest
+
+ng build
+
+ng test
+
+ng lint
+```
+
+Every command should complete successfully.
+
+---
+
+# Task 9 — Full Integration Validation
+
+Re-run Postman collection.
+
+Customer
+
+* Login
+* Browse products
+* Product details
+* Create order
+* Order history
+* Order details
+
+Admin
+
+* Login
+* Create product
+* Update product
+* Delete product (if supported)
+* List orders
+* Update order status
+
+Health
+
+```
+GET /health
+```
+
+Redis
+
+Database
+
+API
+
+must all report healthy.
+
+---
+
+# RC1 Exit Criteria
+
+| Validation        | Target    |
+| ----------------- | --------- |
+| Backend Build     | ✅         |
+| Angular Build     | ✅         |
+| Pytest            | 100% PASS |
+| ng test           | 100% PASS |
+| ng lint           | PASS      |
+| Ruff              | PASS      |
+| Black             | PASS      |
+| MyPy              | PASS      |
+| Alembic Upgrade   | PASS      |
+| Alembic Downgrade | PASS      |
+| Postman SIT       | PASS      |
+| Docker Startup    | PASS      |
+| Health Endpoint   | PASS      |
+
+---
+
+# Estimated Remaining Effort
+
+| Activity                        |            Estimate |
+| ------------------------------- | ------------------: |
+| SQLAlchemy mapper stabilization |           2–3 hours |
+| Alembic validation              |       30–45 minutes |
+| Pytest fixes                    |           2–4 hours |
+| Angular lint cleanup            |           1–2 hours |
+| Final validation pipeline       |              1 hour |
+| RC1 integration verification    |           1–2 hours |
+| **Total**                       | **~7.5–12.5 hours** |
+
+## Implementation Sequence
+
+To minimize rework, follow this order:
+
+1. **Fix SQLAlchemy mapper registration issues** so all backend tests can execute reliably.
+2. **Validate Alembic migrations** (upgrade, downgrade, and current/head consistency).
+3. **Resolve remaining pytest failures** until the suite passes.
+4. **Clean up Angular lint warnings** and type/style issues.
+5. **Run the complete validation pipeline** (compile, Ruff, Black, MyPy, pytest, ng build, ng test, ng lint).
+6. **Execute the final end-to-end integration validation** with Docker, health checks, and the Postman SIT collection.
+
+This sequence keeps the architecture unchanged while driving the project to a production-ready RC1 baseline.
