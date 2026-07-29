@@ -1,5 +1,193 @@
-Here is the complete implementation for the **Payment** and **Address** components following a standard **4-layer FastAPI architecture** (*Schemas → Repositories → Services → Routers*).
+##
+Awesome! Now that the environment and packages are resolved, we can set up **Integration Testing specifically for your Indian Payment Gateway (Razorpay) integration and Address flows**.
 
+Because payment integration touches external APIs, testing in India requires handling two scenarios:
+
+1. **Mocking External Razorpay Gateway API calls** (Fast execution, runs in CI/CD without hitting live endpoints or spending real money).
+2. **Testing Webhook Signature Verification** (Ensuring HMAC security algorithms pass before updating database order statuses).
+
+---
+
+## 📁 Updated Test Directory Setup
+
+Add tests to your `tests/` directory:
+
+```text
+tests/
+├── conftest.py                # DB & client fixtures (from earlier)
+├── test_address_api.py        # Address integration tests
+└── test_payment_india_api.py  # Razorpay integration & webhook signature tests
+
+```
+
+---
+
+## 🛠️ Step 1: Mocking Razorpay in `conftest.py`
+
+Add a pytest fixture to `tests/conftest.py` so your test suite automatically mocks calls to Razorpay's API:
+
+```python
+# Add this fixture to tests/conftest.py
+import pytest
+from unittest.mock import MagicMock
+
+@pytest.fixture
+def mock_razorpay_client(mocker):
+    """Mocks the Razorpay SDK client so tests don't make real network calls."""
+    mock_client = MagicMock()
+    
+    # Mocking order.create response in Paise format
+    mock_client.order.create.return_value = {
+        "id": "order_rzp_test_12345",
+        "entity": "order",
+        "amount": 50000,  # ₹500 in paise
+        "amount_paid": 0,
+        "amount_due": 50000,
+        "currency": "INR",
+        "receipt": "rcpt_test",
+        "status": "created"
+    }
+    return mock_client
+
+```
+
+---
+
+## 🧪 Step 2: Payment & Webhook Tests (`test_payment_india_api.py`)
+
+Create `tests/test_payment_india_api.py` to test the entire lifecycle, including **Paise conversion**, **order creation**, and **HMAC Webhook verification**:
+
+```python
+# tests/test_payment_india_api.py
+import hmac
+import hashlib
+import uuid
+import pytest
+from fastapi import status
+
+# Secret used to sign fake Razorpay webhooks in tests
+TEST_WEBHOOK_SECRET = "your_webhook_secret_key"
+
+
+def test_create_razorpay_payment_order(client, mocker):
+    """Tests creating a payment record and ensuring amount is correctly handled."""
+    # Mock Razorpay SDK creation
+    mock_order_create = mocker.patch("razorpay.Client.order.create")
+    mock_order_create.return_value = {"id": "order_rzp_mock_999"}
+
+    order_id = str(uuid.uuid4())
+    payload = {
+        "order_id": order_id,
+        "amount": 499.50,  # ₹499.50 INR
+        "payment_method": "UPI",
+        "currency": "INR"
+    }
+
+    response = client.post("/payments/", json=payload)
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+
+    assert data["status"] == "PENDING"
+    assert data["gateway_order_id"] == "order_rzp_mock_999"
+
+    # Verify Razorpay was called with amount converted to PAISE (499.50 * 100 = 49950)
+    mock_order_create.assert_called_once_with({
+        "amount": 49950,
+        "currency": "INR",
+        "receipt": f"rcpt_{order_id[:8]}",
+        "notes": {"order_id": order_id}
+    })
+
+
+def test_razorpay_webhook_signature_verification_success(client, db_session, mocker):
+    """Tests receiving a successful payment.captured webhook with valid HMAC signature."""
+    # 1. Setup existing payment in DB
+    from app.models.payment import Payment  # Adjust path to your model
+    from app.modules.orders.models.order import PaymentStatus
+
+    order_id = uuid.uuid4()
+    gateway_order_id = "order_rzp_webhook_test"
+    
+    payment = Payment(
+        order_id=order_id,
+        amount=1000.00,
+        gateway_order_id=gateway_order_id,
+        status=PaymentStatus.PENDING
+    )
+    db_session.add(payment)
+    db_session.commit()
+
+    # 2. Build Webhook Payload
+    webhook_body = {
+        "event": "payment.captured",
+        "payload": {
+            "payment": {
+                "entity": {
+                    "id": "pay_test_887766",
+                    "order_id": gateway_order_id,
+                    "amount": 100000,
+                    "status": "captured"
+                }
+            }
+        }
+    }
+    
+    import json
+    raw_body = json.dumps(webhook_body).encode("utf-8")
+
+    # 3. Generate valid HMAC-SHA256 signature
+    signature = hmac.new(
+        key=TEST_WEBHOOK_SECRET.encode("utf-8"),
+        msg=raw_body,
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+    # 4. Fire POST to Webhook Endpoint
+    headers = {"X-Razorpay-Signature": signature, "Content-Type": "application/json"}
+    response = client.post("/payments/webhook/razorpay", content=raw_body, headers=headers)
+    
+    assert response.status_code == status.HTTP_200_OK
+
+    # 5. Verify database status changed to PAID
+    db_session.refresh(payment)
+    assert payment.status == PaymentStatus.PAID
+    assert payment.payment_reference == "pay_test_887766"
+
+
+def test_razorpay_webhook_invalid_signature_rejected(client):
+    """Tests that webhooks with fake/tampered signatures return HTTP 400."""
+    raw_body = b'{"event": "payment.captured"}'
+    fake_headers = {"X-Razorpay-Signature": "invalid_signature_hash"}
+
+    response = client.post("/payments/webhook/razorpay", content=raw_body, headers=fake_headers)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+```
+
+---
+
+## ⚡ Step 3: Run the Test Suite
+
+Install `pytest-mock` to make fixture mocking easy:
+
+```bash
+pip install pytest pytest-mock httpx
+
+```
+
+Then execute all tests:
+
+```bash
+pytest -v
+
+```
+
+### What to check:
+
+* All 200/201 creation endpoints succeed.
+* DB `payment.status` switches to `PAID` only when a valid signature is provided.
+* `amount_in_paise` multiplication logic converts Rupees accurately.
+##
 ---
 
 ## 1. `schemas/` Layer (Pydantic v2)
