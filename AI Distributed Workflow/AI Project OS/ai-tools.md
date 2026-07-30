@@ -1,3 +1,174 @@
+# Project Architecture & AI-Driven Execution Blueprint
+
+---
+
+## 1. Executive Summary & Core Strategy
+
+This blueprint outlines a **Product Manager / Lead Architect** workflow designed to build a full-stack Enterprise Platform in **8 weeks** while operating on a minimal budget.
+
+By leveraging the **Google AI Pro** promotional subscription (₹489/month for 3 months), you unlock high rate limits, Google Cloud credits ($10/month dev credit + $300 GCP trial), and full access to Google’s agentic development ecosystem.
+
+### The AI Orchestration Strategy
+
+Instead of writing boilerplate code manually, you operate as the **Executive Reviewer**, orchestrating three AI agents:
+
+```text
+                        ┌──────────────────────────────────────────────┐
+                        │       NOTEBOOKLM (Central Architect)         │
+                        │  - Stores PRDs, DB Schemas, & API Specs      │
+                        │  - Generates Task Specs for Coding Agents    │
+                        └──────────────────────┬───────────────────────┘
+                                               │
+                                      Issues Daily Prompts
+                                               │
+                ┌──────────────────────────────┴──────────────────────────────┐
+                ▼                                                             ▼
+┌──────────────────────────────┐                              ┌──────────────────────────────┐
+│     JULES (Async Agent)      │                              │   ANTIGRAVITY 2.0 (IDE)      │
+│ - Runs in Cloud VM           │                              │ - Local Multi-Agent Harness  │
+│ - 100 Tasks/Day Quota        │                              │ - Handles Frontend & UI      │
+│ - Creates PRs for Schemas,   │                              │ - Connects Complex API Routes│
+│   Tests, & Migrations        │                              │ - Visual Verification        │
+└──────────────┬───────────────┘                              └──────────────┬───────────────┘
+               │                                                             │
+               └──────────────────────┬──────────────────────────────────────┘
+                                      ▼
+                        ┌──────────────────────────────┐
+                        │     YOU (Lead Reviewer)      │
+                        │ - Specs tasks via AGENTS.md  │
+                        │ - Reviews PR Diffs & Test QA │
+                        │ - Merges to Main & Deploys   │
+                        └──────────────────────────────┘
+
+```
+
+---
+
+## 2. Technology Stack & Project Architecture
+
+The target application is built as a **Modular Monolith** to maximize performance, simplify local execution, and allow clean domain separation:
+
+* **Backend:** Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.x (Sync Session Factory), Alembic (Migrations).
+* **Database:** PostgreSQL 17 with `pgvector` enabled for vector embeddings and hybrid search.
+* **Frontend:** Angular 18/19 with native **Signals** state management and standalone components.
+* **AI Engine:** Google Gemini 3.5 / Gemini API (via Google AI Studio) for Document Processing, Text-to-SQL execution, and Workflow engines.
+* **Deployment Infrastructure:** Google Cloud Run (Containerized via Docker Compose locally, multi-stage Dockerfile in production).
+
+---
+
+## 3. The Central Memory Hub: NotebookLM (Architect)
+
+NotebookLM acts as the single source of truth for all project context, preventing context drift across agent tasks.
+
+### Core Files Loaded into NotebookLM
+
+1. `PRD.md` — Product Requirements Document detailing features, user roles, and business logic.
+2. `SCHEMA.sql` — Exact PostgreSQL table structures, `pgvector` indexes, and foreign keys.
+3. `AGENTS.md` — The strict coding standards document (enforces Pydantic v2, Angular Signals, folder layouts).
+4. `API_SPECS.md` — OpenAPI/Pydantic request and response contracts.
+
+### NotebookLM System Persona
+
+> *"You are the Principal Software Architect for a Python 3.12 (FastAPI) + Angular + pgvector modular monolith. Your job is to enforce strict architectural rules, maintain database integrity, and draft precise, actionable task specifications for AI coding agents (Jules and Antigravity). Never output raw implementation code unless asked. Focus on generating clear step-by-step technical specifications with file target locations and schema constraints."*
+
+---
+
+## 4. Operational Guardrails: `AGENTS.md`
+
+Save this file at the root of your repository (`/AGENTS.md`). Both Antigravity and Jules automatically parse this file to prevent destructive rewrites or incorrect dependency choices.
+
+```markdown
+# AGENTS.md - System Coding Standards
+
+## 1. Stack Constraints
+- **Python:** 3.12 only. Use strict type annotations everywhere.
+- **FastAPI:** Use Pydantic v2 for all request/response validation schemas (`from pydantic import BaseModel, ConfigDict`).
+- **ORM:** SQLAlchemy 2.x syntax. Use `mapped_column` and `DeclarativeBase`. No legacy 1.x `Column()` syntax.
+- **Frontend:** Angular Signals (`signal()`, `computed()`, `effect()`). Do NOT use legacy RxJS BehaviorSubjects unless strictly required for HTTP interceptors. Use standalone components.
+- **Database:** PostgreSQL 17 + `pgvector`.
+
+## 2. File Organization (Modular Monolith)
+- All domain modules live inside `app/modules/<module_name>/`.
+- Structure per module:
+  ├── router.py      # FastAPI endpoints only (no SQL/business logic)
+  ├── schemas.py     # Pydantic v2 Data Models
+  ├── models.py      # SQLAlchemy DB Tables
+  ├── repository.py  # DB Queries & Vector Operations
+  └── service.py     # Core Business Logic & External API calls
+
+## 3. Agent Execution Rules
+- Never modify files outside the targeted module without explicit permission.
+- Always include pytest unit tests in `tests/modules/<module_name>/` for any new endpoints created.
+- Before committing code, verify that all imports are explicit (no `import *`).
+
+```
+
+---
+
+## 5. Master 8-Week Roadmap & Execution Journey
+
+```text
+      WEEKS 1-2                 WEEKS 3-5                 WEEKS 6-7                WEEK 8
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│ Phase 1:         │      │ Phase 2:         │      │ Phase 3:         │      │ Phase 4:         │
+│ Architecture &   │ ───► │ Core Engines &   │ ───► │ UI Integration   │ ───► │ Deployment &     │
+│ Foundation       │      │ Gemini AI Modules│      │ & E2E Testing    │      │ GCP Cloud Run    │
+└──────────────────┘      └──────────────────┘      └──────────────────┘      └──────────────────┘
+
+```
+
+1. **Phase 1: Architecture & Foundation (Weeks 1–2):** Role: You setup baseline, Jules generates base models async.
+* **Manual Actions:** Initialize local repo, commit `AGENTS.md`, and boot local environment using `docker-compose.yml` (Postgres + pgvector).
+* **Jules Assignments (Async):** Assign issue: *"Generate SQLAlchemy 2.x models and Pydantic v2 schemas for User Auth and Document Metadata in `app/modules/core`."*
+* **Antigravity Tasks (IDE):** Build the FastAPI modular monolith folder structure, dependency injection utilities (`deps.py`), and the base Angular shell layout.
+* **Review Gate:** Ensure database tables migrate cleanly using `alembic upgrade head`.
+
+
+2. **Phase 2: Core Engines & Gemini AI Integration (Weeks 3–5):** Role: Prompt NotebookLM for specs, delegate to agents.
+* **NotebookLM Task:** Ask NotebookLM: *"Draft a task spec for Antigravity to build the Document Processing pipeline using Gemini API."*
+* **Antigravity Tasks (IDE):** Implement Gemini Document Parsing (PDF/OCR extraction) and Text-to-SQL query generation routes. Use the integrated browser to visually debug API payloads.
+* **Jules Assignments (Async):** Assign issue: *"Write comprehensive pytest suites in `tests/` for Text-to-SQL schema validation and mock Gemini API responses."*
+* **Review Gate:** Execute local pytest suite and confirm vector retrieval performance on pgvector.
+
+
+3. **Phase 3: Frontend Integration & End-to-End Testing (Weeks 6–7):** Role: Human-in-the-loop QA and UX checks.
+* **Antigravity Tasks (IDE):** Generate Angular Standalone components using Angular Signals. Create real-time dashboard components, dynamic data tables, and document preview modals.
+* **Jules Assignments (Async):** Assign issue: *"Connect Angular API HTTP services to FastAPI endpoints, standardize error interceptors, and add loading state flags."*
+* **Review Gate:** Perform manual smoke testing across the UI; verify mobile/desktop responsiveness.
+
+
+4. **Phase 4: Deployment & Cloud Run Hardening (Week 8):** Role: Cloud Run deployment utilizing Google Dev credits.
+* **Manual Actions:** Activate $300 GCP Free Trial / apply Developer Programme $10 monthly credits.
+* **Jules Assignments (Async):** Assign issue: *"Write optimized multi-stage Dockerfile for FastAPI and Angular, and generate Google Cloud Build YAML configurations."*
+* **Deployment:** Deploy FastAPI backend and Angular frontend to Google Cloud Run. Set up environment secrets in GCP Secret Manager.
+
+
+---
+
+## 6. Financial & Quota Optimization Strategy
+
+To ensure zero mid-sprint blocks and maintain low operational costs, adhere to this resource budget:
+
+| Resource / Tool | Plan / Cost | Quota Strategy & Purpose |
+| --- | --- | --- |
+| **Google AI Pro** | **₹489/mo** (Months 1–3) | Unlocks **100 Jules tasks/day**, expanded Antigravity agent quotas, and 5 TB Google Drive storage. |
+| **GCP Cloud Credits** | **$10/mo Included** | Provided via Developer Programme inclusion; covers testing costs on GCP Cloud Run. |
+| **Google AI Studio** | **Free Tier** | Provides direct access to Gemini 3.5 Pro / Flash models for backend testing without API charges. |
+| **NotebookLM** | **Free Tier** | Grounded project memory storage (up to 50 documents per notebook). |
+| **Total 3-Month Outlay** | **~₹1,467 Total** | Replaces ~$200/month in equivalent standalone developer tooling costs. |
+
+---
+
+## 7. Portfolio Showcase Strategy
+
+Once your platform is live on Cloud Run, present it in your engineering portfolio using these guidelines:
+
+1. **Architecture Diagram:** Publish a clean system architecture diagram showing the modular monolith, FastAPI, pgvector, and Angular Signals flow.
+2. **AI Orchestration Case Study:** Frame your development methodology around modern software practices: *"Built an enterprise AI platform in 8 weeks by acting as Lead Reviewer and orchestrating Jules (Cloud VM Agent) and Antigravity 2.0 via grounded spec files."*
+3. **Interactive Demo Link:** Point reviewers directly to your live Google Cloud Run deployment with pre-populated demo documents.
+4. 
+##
+-- Response 4
 At **₹489/month for 3 months** (down from the usual ₹1,950/month), this promotional offer for **Google AI Pro** is an **outstanding deal** for your specific 2-month development timeline.
 
 Unlike the ₹399 entry-level Plus plan (which only gives consumer web perks), the **AI Pro tier directly targets developer workflows**.
