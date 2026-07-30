@@ -1,3 +1,77 @@
+## 3-Month Master Execution & Financial Plan
+
+```text
+ MONTH 1: Core Dev            MONTH 2: AI Modules           MONTH 3: Live Production
+ ┌────────────────────────┐  ┌────────────────────────┐  ┌────────────────────────┐
+ │ Local Docker (PG17)    │  │ Doc Proc, Text-to-SQL, │  │ Activate GCP $300 Trial│
+ │ FastAPI Monolith       │  │ Workflow & Trading     │  │ Cloud Run (FastAPI)    │
+ │ Angular Shell          │  │ Antigravity / Jules    │  │ Firebase (Angular UI)  │
+ └───────────┬────────────┘  └───────────┬────────────┘  └───────────┬────────────┘
+             │                           │                           │
+         Cost: ₹0                    Cost: ₹0                    Cost: ₹0
+
+```
+
+---
+
+## Phase-by-Phase Resource & Cost Breakdown
+
+### Phase 1: Months 1 & 2 — Development (Local First)
+
+During these 60 days, keep all compute and database components local to avoid spending credits early or hitting cloud billable hours.
+
+* **Database:** Local Docker container running `pgvector/pgvector:pg17` (**₹0**).
+* **Backend & Frontend:** Local `uvicorn` and `ng serve` (**₹0**).
+* **Gemini API:** **Google AI Studio Free Tier** (10–15 Requests/Min using Gemini Flash/Flash-Lite).
+* **AI Coding Tools:** **Google Antigravity & Jules** in free preview mode (**₹0**).
+> **Optional Tooling Upgrade:** If you hit heavy agent quota limits while Antigravity generates complex code in Month 2, subscribe to **Google AI Pro** (₹1,950 for 1 month) to get higher Antigravity limits and $10 in developer credits. Otherwise, stay on ₹0.
+
+
+
+---
+
+### Phase 2: Month 3 — Live Production Launch & Portfolio Showcase
+
+At the start of Month 3, activate your new **Google Cloud Billing Account** to claim the **$300 Welcome Credit** (valid for 90 days).
+
+| Infrastructure Component | Production Setup | Actual Monthly Cost | Cost Covered By |
+| --- | --- | --- | --- |
+| **Backend Compute** | Cloud Run (`asia-south1` Mumbai) [1 vCPU, 1GB RAM] | ~₹250 – ₹600 / mo | **GCP $300 Free Credit** |
+| **Managed Database** | Supabase Free Tier OR Cloud SQL (`db-f1-micro`) | ₹0 (Supabase) OR ~₹1,000 (Cloud SQL) | **Supabase Free** OR **GCP Credit** |
+| **Frontend CDN** | Firebase Hosting / Vercel Global Edge | **₹0 / mo** | Always Free Tier |
+| **Gemini API (Live Demos)** | Google AI Studio (Tier-1 Pay-As-You-Go) | ~₹150 – ₹300 / mo | Paid usage / Personal Card |
+| **Custom Domain** | Namecheap / Cloudflare (`.com` or `.dev`) | ~₹100 / mo (billed yearly) | Billed directly (~₹800/yr) |
+| **NET OUT-OF-POCKET SPEND** | **For Month 3 Live Production** | **~₹100 – ₹300** | *(Only domain & minimal API usage)* |
+
+---
+
+### Phase 3: Post-Month 3 — "On-Demand" Production Demos
+
+After your initial 30 days of live production, you want the platform available **as needed** for remote job interviews, freelance client demos, or product pitches without paying recurring monthly fees.
+
+To achieve a **₹0/month idle cost**:
+
+1. **Cloud Run Auto-Scaling to Zero:** Cloud Run automatically scales down to 0 container instances when no requests come in. You pay **₹0** when no one is accessing your API.
+2. **Database Strategy (Zero-Cost Idle):**
+* **Option A (Supabase / Neon):** Keep your database on Supabase or Neon's free tier. It stays alive and costs **₹0/month**.
+* **Option B (Cloud SQL):** If using GCP Cloud SQL, stop the instance via `gcloud sql instances stop <instance-name>` when not in use, and start it 2 minutes before a live demo via the GCP mobile app or CLI.
+
+
+3. **Frontend Hosting:** Firebase Hosting and Vercel static assets remain live 24/7 on the global CDN at **₹0/month**.
+
+---
+
+## Financial Summary Matrix
+
+| Milestone | Duration | Primary Infrastructure | Net Total Cost (INR) |
+| --- | --- | --- | --- |
+| **Development** | Months 1 & 2 | Local Docker + Google AI Studio Free Tier | **₹0** *(₹1,950 optional if buying 1mo AI Pro)* |
+| **Production Showcase** | Month 3 | Cloud Run + GCP $300 Trial Credits + Custom Domain | **~₹100 – ₹300** total |
+| **Post-Showcase Demos** | On-Demand | Cloud Run (Scale to 0) + Supabase Free PG17 + Firebase | **₹0 / month** *(Pay fractions of a rupee per demo)* |
+| **TOTAL ESTIMATED COST** | **Complete 3-Month Cycle** | **Production-Grade Portfolio** | **~₹100 – ₹2,250 Total** |
+
+---
+-- Response 3
 ## 1. Development Phase: Which Google Plan to Use?
 
 During development, your primary bottlenecks will be **coding agent rate limits** (in Google Antigravity or Jules) and **Gemini API quotas** for testing your backend.
